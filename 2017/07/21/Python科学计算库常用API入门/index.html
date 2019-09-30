@@ -1,0 +1,942 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="python,data-analysis,pandas,numpy," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="最近一直在忙着处理数据，以下是我作为python和数据分析的入门小白，在最近几周的工作中总结的一些经验。 Pandas高性能、简单易用的数据结构和数据分析工具 DataFrame/Series常用DataFrame构建DataFrame123456789df = pd.DataFrame(numpy_ndarray, columns=[&apos;col1&apos;,&apos;col2&apos;,...] )df = pd.Dat">
+<meta name="keywords" content="python,data-analysis,pandas,numpy">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python科学计算库常用API入门">
+<meta property="og:url" content="http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="最近一直在忙着处理数据，以下是我作为python和数据分析的入门小白，在最近几周的工作中总结的一些经验。 Pandas高性能、简单易用的数据结构和数据分析工具 DataFrame/Series常用DataFrame构建DataFrame123456789df = pd.DataFrame(numpy_ndarray, columns=[&apos;col1&apos;,&apos;col2&apos;,...] )df = pd.Dat">
+<meta property="og:image" content="http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/Image.png">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.368Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Python科学计算库常用API入门">
+<meta name="twitter:description" content="最近一直在忙着处理数据，以下是我作为python和数据分析的入门小白，在最近几周的工作中总结的一些经验。 Pandas高性能、简单易用的数据结构和数据分析工具 DataFrame/Series常用DataFrame构建DataFrame123456789df = pd.DataFrame(numpy_ndarray, columns=[&apos;col1&apos;,&apos;col2&apos;,...] )df = pd.Dat">
+<meta name="twitter:image" content="http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/Image.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/"/>
+
+
+
+
+
+  <title>Python科学计算库常用API入门 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Python科学计算库常用API入门</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-21T11:49:54+08:00">
+                2017-07-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/data-analysis/" itemprop="url" rel="index">
+                    <span itemprop="name">data-analysis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/07/21/Python科学计算库常用API入门/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/07/21/Python科学计算库常用API入门/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近一直在忙着处理数据，以下是我作为python和数据分析的入门小白，在最近几周的工作中总结的一些经验。</p>
+<h1 id="Pandas"><a href="#Pandas" class="headerlink" title="Pandas"></a>Pandas</h1><p>高性能、简单易用的数据结构和数据分析工具</p>
+<h2 id="DataFrame-Series常用"><a href="#DataFrame-Series常用" class="headerlink" title="DataFrame/Series常用"></a>DataFrame/Series常用</h2><h3 id="DataFrame"><a href="#DataFrame" class="headerlink" title="DataFrame"></a>DataFrame</h3><p>构建DataFrame<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">df = pd.DataFrame(numpy_ndarray, columns=[<span class="string">'col1'</span>,<span class="string">'col2'</span>,...] )</div><div class="line">df = pd.DataFrame(some_list_of_set, columns=[<span class="string">'col1'</span>,<span class="string">'col2'</span>,...] )</div><div class="line">df = pd.DataFrame(some_dict_of_series_or_arrays_or_list)</div><div class="line"></div><div class="line">web_stats = &#123;<span class="string">'Day'</span>:[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>],</div><div class="line">            <span class="string">'Visitors'</span>:[<span class="number">43</span>,<span class="number">53</span>,<span class="number">34</span>,<span class="number">45</span>,<span class="number">64</span>,<span class="number">34</span>],</div><div class="line">            <span class="string">'Bounce_Rate'</span>:[<span class="number">65</span>,<span class="number">72</span>,<span class="number">62</span>,<span class="number">64</span>,<span class="number">54</span>,<span class="number">66</span>]&#125;</div><div class="line"></div><div class="line">df = pd.DataFrame(web_stats)</div></pre></td></tr></table></figure></p>
+<p>查看头部<br><code>df.head()</code><br>查看尾部(n个元素)<br><code>df.tail(n)</code></p>
+<p>以Day字段为索引<br><code>df = df.set_index(&#39;Day&#39;)</code></p>
+<p>选择某一列 <code>df[&#39;Visitors&#39;]</code> 或 <code>df.Visitors</code> 如果有空格，使用第一种</p>
+<p>将df一列转为list（列行转）<br><code>df.Visitors.tolist()</code></p>
+<p>多列转数组<br><code>np.array(df[[&#39;Bounce_Rate&#39;,&#39;Visitors&#39;]])</code></p>
+<p>重命名列名<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">df.columns = [<span class="string">'Renamed_col1'</span>,<span class="string">'Renamed_col2'</span>] </div><div class="line">df = df.rename(columns==&#123;oldColName: newColName&#125;)</div></pre></td></tr></table></figure></p>
+<p>数据的快速统计汇总<br><code>df.describe()</code></p>
+<p>查看更多的百分位数<br><code>df.describe(percentiles=[.20,.40,.80,.90,.95])</code></p>
+<p>筛选：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">df[df.A &gt; <span class="number">0</span>] <span class="comment"># 字段A大于0的</span></div><div class="line">df.query(<span class="string">' k == "/pay/v4/order/pay/consume" and ct &gt; 4000'</span>)</div><div class="line">df[(df[<span class="string">'class'</span>] == <span class="string">'Iris-virginica'</span>) &amp; (df[<span class="string">'petal width'</span>] &gt; <span class="number">2.2</span>)]</div></pre></td></tr></table></figure></p>
+<p>删除多列：<br><code>df.drop([&#39;col1&#39;, &#39;col2&#39;], axis=1) # inplace=True指定替换原df</code></p>
+<p>删除多记录：<br><code>df.drop([22,33], axis=0)</code></p>
+<p>分组聚合查询：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">aggregations = &#123;</div><div class="line">    <span class="string">'ct'</span>: &#123; <span class="comment"># work on the "duration" column</span></div><div class="line">        <span class="string">'total'</span>: <span class="string">'sum'</span>,  <span class="comment"># get the sum, and call this result 'total_duration'</span></div><div class="line">        <span class="string">'average'</span>: <span class="string">'mean'</span>, <span class="comment"># get mean, call result 'average_duration'</span></div><div class="line">        <span class="string">'count'</span>: <span class="string">'count'</span>,</div><div class="line">        <span class="string">'max'</span>: <span class="string">'max'</span>,</div><div class="line">        <span class="string">'min'</span>: <span class="string">'min'</span>,</div><div class="line">        <span class="string">'quantile_0.5'</span>: <span class="keyword">lambda</span> x: x.quantile(<span class="number">0.5</span>),</div><div class="line">        <span class="string">'quantile_0.75'</span>: <span class="keyword">lambda</span> x: x.quantile(<span class="number">0.75</span>),</div><div class="line">        <span class="string">'quantile_0.95'</span>: <span class="keyword">lambda</span> x: x.quantile(<span class="number">0.95</span>)</div><div class="line">    &#125;,</div><div class="line">&#125;</div><div class="line"></div><div class="line">easy_df.groupby(<span class="string">"k"</span>).aggregate(aggregations)</div><div class="line"><span class="comment"># 查询</span></div><div class="line">slow_pay_df = easy_df[ (easy_df.k == <span class="string">'pay/consume'</span> ) &amp; ( easy_df.ct &gt; <span class="number">3000</span> )] </div><div class="line"><span class="comment"># 排序</span></div><div class="line">easy_agg = easy_df.sort_values(by=[(<span class="string">'ct'</span>,<span class="string">'average'</span>)], ascending=<span class="keyword">False</span>) <span class="comment"># 多index的要使用tuple传入列名</span></div></pre></td></tr></table></figure></p>
+<p>选择Pclass和Survived列，按照Pclass聚合，按平均值降序排列查看：</p>
+<p><code>train_df[[&#39;Pclass&#39;, &#39;Survived&#39;]].groupby([&#39;Pclass&#39;], as_index=False).mean().sort_values(by=&#39;Survived&#39;, ascending=False)</code></p>
+<p>分组count：<br><code>df1.groupby(&#39;p.trade_status&#39;)[&#39;p.trade_status&#39;].value_counts()</code></p>
+<p>处理缺失数据：<br><code>df = df.dropna(axis=1, thresh=100) #  删除非NaN值小于100的列</code></p>
+<p>map: 转变数据框(df)中的某个列的列数据</p>
+<p>将class列的数据替换为更简单的名称，并将原列替换<br><code>df[&#39;class&#39;] = df[&#39;class&#39;].map({&#39;Iris-setosa&#39;: &#39;SET&#39;, &#39;Iris-virginica&#39;: &#39;VIR&#39;, &#39;Iris-versicolor&#39;: &#39;VER&#39;})</code></p>
+<p>apply :<br>  既可以在DataFrame上工作，也可在Series上工作。<br><code>df[&#39;wide petal&#39;] = df[&#39;petal width&#39;].apply(lambda v: 1 if v &gt;= 1.3 else 0)</code><br>axis :</p>
+<ul>
+<li>0 or ‘index’: apply function to each column</li>
+<li>1 or ‘columns’: apply function to each row</li>
+</ul>
+<p>按行处理整个df<br><code>df[&#39;petal area&#39;] = df.apply(lambda r: r[&#39;petal length&#39;] * r[&#39;petal width&#39;], axis=1)</code></p>
+<p>按行更新，如果是nan就更新成另一个行</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">update_appkey</span><span class="params">(row, data=data)</span>:</span></div><div class="line">    <span class="keyword">if</span> row.app_key_x != row.app_key_x:</div><div class="line">        print(<span class="string">'update '</span>,row[<span class="string">'包名'</span>], <span class="string">' '</span>,row.app_key_y)</div><div class="line">        row.app_key_x = row.app_key_y</div><div class="line">    <span class="keyword">return</span> row</div><div class="line">pdata = mdata.apply(update_appkey, axis=<span class="number">1</span>).copy()</div></pre></td></tr></table></figure>
+<p>在apply的函数中，获取行号：使用row.name属性</p>
+<p>applymap :对整个df所有数据单元执行一个函数<br><code>df.applymap(lambda v: np.log(v) if isinstance(v, float) else v)</code></p>
+<p>数据切片 iloc<br><code>df.iloc[:3, :2]</code></p>
+<p>tip: ix vs iloc vs loc</p>
+<ul>
+<li>loc 通过行标签索引行数据(works on labels in the index.)，如loc[1]表示索引的是第一行，loc[‘d’]表示索引的是’d’行，loc[:, [‘c’]] 索引’c’列</li>
+<li>iloc 通过行号获取行数据(works on the positions in the index (so it only takes integers)) ，</li>
+<li>ix usually tries to behave like loc but falls back to behaving like iloc if the label is not in the index. pandas 0.20.0 及以上废除</li>
+</ul>
+<p>重置索引（如截取了一个子df，索引保持原样，可以重置索引从0开始）<br><code>df.reset_index(drop=True)</code></p>
+<p>检查数据相关性：<br><code>df.corr()</code><br>通过传递method参数，还可以切换到Kendall’s tau或Spearman’s<br><code>df.corr(method=&#39;spearman&#39;)</code><br><code>df.corr(method=&#39;kendall&#39;)</code></p>
+<h3 id="Series"><a href="#Series" class="headerlink" title="Series"></a>Series</h3><p>unique() 相当与sql distinct<br><code>df[&#39;class&#39;].unique()</code></p>
+<p>round : 四舍五入<br><code>df.round(n) # 保留n位小数</code><br>或<br><code>df[&#39;col&#39;].round(n)</code></p>
+<p>找重复数据：<br><code>df.duplicated()</code></p>
+<p>pivot_table 以电子表格形式显示数据<br><code>names.pivot_table(&#39;births&#39;,columns=&#39;sex&#39;,aggfunc=sum,index=&#39;year&#39;) # 统计对象为births列，纵坐标以sex列划分，横坐标为year，使用sum函数聚合</code></p>
+<p>字符串替换：<br><code>f[&#39;date&#39;] = f[&#39;date&#39;].str.replace(&#39;日&#39;,&#39;&#39;)</code></p>
+<p>聚合Group by :<br>使用group by - apply 分组并加入列<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">add_prop</span><span class="params">(group)</span>:</span></div><div class="line">    <span class="comment"># 注意变为float</span></div><div class="line">    births = group.births.astype(float)</div><div class="line">    group[<span class="string">'prop'</span>] = births / births.sum()</div><div class="line">    <span class="keyword">return</span> group</div><div class="line">names = names.groupby([<span class="string">'year'</span>,<span class="string">'sex'</span>]).apply(add_prop) <span class="comment"># 某年内某个性别分组</span></div><div class="line">names</div></pre></td></tr></table></figure></p>
+<p>分组取top 1000：<br><code>top1000 = names.groupby([&#39;year&#39;,&#39;sex&#39;]).apply(lambda g : g.sort_values(by=&#39;births&#39;, ascending=False)[:1000])</code></p>
+<p>样本值的累积和：<br><code>df.cumsum()</code></p>
+<p>找到已排序的series中n应该插入的位置：series.searchsorted(n)<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">s = pd.Series([<span class="number">1</span>,<span class="number">3</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">9</span>])</div><div class="line">s.searchsorted(<span class="number">2</span>) <span class="comment"># 1</span></div></pre></td></tr></table></figure></p>
+<p>处理时间：<br><code>login_df[&#39;createtime&#39;] = pd.to_datetime(login_df[[&#39;year&#39;,&#39;month&#39;,&#39;day&#39;,&#39;hour&#39;,&#39;minute&#39;,&#39;second&#39;]]) # login_df包含了年月日时分秒的列</code></p>
+<h2 id="I-O-Basics"><a href="#I-O-Basics" class="headerlink" title="I/O Basics"></a>I/O Basics</h2><p>从csv文件读取到df：<br><code>df = pd.read_csv(&#39;filename&#39;)</code><br>从df写入到csv：<br><code>df.to_csv(&#39;newcsv.csv&#39;)</code></p>
+<p>读取页面的tables为dataFrame list：<br><code>dfs = df.read_html(&#39;https://simple.wikipedia.org/wiki/List_of_U.S._states&#39;)</code></p>
+<p>处理utf8编码的嵌套json数据（规则化json数据）：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</div><div class="line"><span class="keyword">import</span> codecs</div><div class="line"><span class="keyword">import</span> json</div><div class="line">path = <span class="string">'some_nested_json_with_utf8_coded.json'</span></div><div class="line"></div><div class="line"><span class="keyword">with</span> codecs.open(path, <span class="string">'r'</span>, <span class="string">'utf-8'</span>) <span class="keyword">as</span> json_data:</div><div class="line">    json_dicts = json.load(json_data)</div><div class="line">    json_dicts = pd.io.json.json_normalize(json_dicts)  <span class="comment"># 处理嵌套json</span></div><div class="line">    df = pd.DataFrame(json_dicts)</div><div class="line"><span class="comment"># df = pd.read_json(path)  # 这两种都一样</span></div><div class="line">df.head()</div></pre></td></tr></table></figure></p>
+<p>读取mysql数据到df（pandas处理sql要借助SQLAlchemy，一个类似java中mybatis的orm工具，具体实现还要依赖各种数据库连接驱动模块）：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">conn = <span class="string">'mysql+pymysql://user:password@192.168.3.2:3306/dbname?charset=utf8'</span><span class="comment"># pymysql也可更换为包含的库如mysqlconnector</span></div><div class="line">app_df = pd.read_sql_query(<span class="string">u'select col_name1 from table_name1'</span>, con=conn)</div></pre></td></tr></table></figure></p>
+<p>读取oracle大批数据到df：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> cx_Oracle</div><div class="line"></div><div class="line">ip = <span class="string">'172.16.1.63'</span></div><div class="line">port = <span class="number">1521</span></div><div class="line">SID = <span class="string">'ucbi'</span> <span class="comment"># oracle SID</span></div><div class="line">dsn_tns = cx_Oracle.makedsn(ip, port, SID)</div><div class="line"></div><div class="line">conn = cx_Oracle.connect(user=<span class="string">'user'</span>,password=<span class="string">'password'</span>,dsn=dsn_tns)</div><div class="line">pool_generator = pd.read_sql(<span class="string">'select * from table_name1'</span>, con=conn, chunksize=<span class="number">20000</span>) <span class="comment"># 每次读20000条数据</span></div><div class="line"></div><div class="line">dfs = []</div><div class="line"><span class="keyword">for</span> chunk <span class="keyword">in</span> pool_generator:</div><div class="line">    print(<span class="string">'process '</span>,len(dfs))</div><div class="line">    dfs.append(chunk)</div><div class="line"></div><div class="line">pool = pd.concat(dfs,ignore_index=<span class="keyword">True</span>)</div><div class="line">pool</div></pre></td></tr></table></figure></p>
+<p>df数据写入到oracle<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># 写入</span></div><div class="line"><span class="keyword">import</span> cx_Oracle</div><div class="line"><span class="keyword">from</span> sqlalchemy <span class="keyword">import</span> create_engine</div><div class="line"></div><div class="line"><span class="keyword">from</span> sqlalchemy <span class="keyword">import</span> types</div><div class="line"><span class="comment"># 指定类型，否则对df中object类型默认使用CLOB，速度慢到令人发指 https://stackoverflow.com/questions/42727990/speed-up-to-sql-when-writing-pandas-dataframe-to-oracle-database-using-sqlalch</span></div><div class="line">dtyp = &#123;c:types.VARCHAR(df[c].str.len().max())</div><div class="line">        <span class="keyword">for</span> c <span class="keyword">in</span> df.columns[df.dtypes == <span class="string">'object'</span>].tolist()&#125;</div><div class="line"></div><div class="line">ip = <span class="string">'172.16.1.63'</span></div><div class="line">port = <span class="number">1521</span></div><div class="line">SID = <span class="string">'ucbi'</span></div><div class="line">dsn_tns = cx_Oracle.makedsn(ip, port, SID)</div><div class="line">print(dsn_tns)</div><div class="line">engine = create_engine(<span class="string">'oracle+cx_oracle://ucenter:passwd@%s'</span> % dsn_tns)</div><div class="line"></div><div class="line">df.to_sql(<span class="string">'table_name'</span>, engine, chunksize=<span class="number">20000</span>, if_exists=<span class="string">'replace'</span>,dtype=dtyp ) <span class="comment"># 每次重新创建表</span></div></pre></td></tr></table></figure></p>
+<h2 id="数据合并："><a href="#数据合并：" class="headerlink" title="数据合并："></a>数据合并：</h2><p>join: 主要用于索引上的合并<br><code>df.join(self, other, on=None, how=&#39;left&#39;, lsuffix=&#39;&#39;, rsuffix=&#39;&#39;,sort=False)</code></p>
+<p>merge:   默认以重叠的列名当做连接键，默认inner连接<br><code>pd.merge(df1,df2,on=&#39;Year&#39;,how=&#39;outer&#39;)</code><br>how 类似mysql join方式，有left, right, inner, outer ，连接键名称不同，可使用left_on和right_on指定；以索引当做连接键：left_index=true,right_index=True<br>on可以指定多个col，<code>on=[&#39;Year&#39;,&#39;Month&#39;]</code></p>
+<p>concat: 相当于DB中的全连接（union all）  concat方法相当于数据库中的全连接(UNION ALL),可以指定按某个轴进行连接,也可以指定连接的方式join(outer,inner 只有这两种)。与数据库不同的时concat不会去重，要达到去重的效果可以使用drop_duplicates方法<br><code>pd.concat(objs, axis=0, join=&#39;outer&#39;, join_axes=None, ignore_index=False, keys=None, levels=None, names=None, verify_integrity=False)</code><br>常用：<br><code>pd.concat(some_list, ignore_index=True)</code></p>
+<h2 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h2><p>python原生pickle<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> pickle</div><div class="line"><span class="comment"># 序列化</span></div><div class="line">pickle_out = open(<span class="string">'picklename'</span>,<span class="string">'wb'</span>)</div><div class="line">pickle.dump(df,pickle_out)</div><div class="line">pickle_out.close()</div><div class="line"><span class="comment"># 反序列化</span></div><div class="line">pickle_in = open(<span class="string">'picklename'</span>),<span class="string">'rb'</span>)</div><div class="line">df = pickle.load(pickle_in)</div></pre></td></tr></table></figure></p>
+<p>pandas pickle<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">df.to_pickle(<span class="string">'picklename2'</span>)</div><div class="line">df2 = pd.read_pickle(<span class="string">'picklename2'</span>)</div></pre></td></tr></table></figure></p>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>pd.get_dummies 属性平展<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">data_train[<span class="string">'Cabin'</span>] <span class="comment"># 为'Yes'和'No'数据</span></div><div class="line">dummies_Cabin = pd.get_dummies(data_train[<span class="string">'Cabin'</span>], prefix= <span class="string">'Cabin'</span>) <span class="comment"># 获取Cabin_Yes 和 Cabin_No两列，并按0,1展示</span></div></pre></td></tr></table></figure></p>
+<p>pandas中判断NaN类型：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">isNaN</span><span class="params">(num)</span>:</span></div><div class="line">     <span class="keyword">return</span> num != num</div></pre></td></tr></table></figure></p>
+<p>需要筛选后处理数据时，使用copy，否则一些操作会返回一个view，这样在更新时就会有问题</p>
+<p>多level降低：（尤其适用于在excel读入的多表头数据）<br><code>frame.columns = frame.columns.droplevel()</code></p>
+<p>bool 数组取反使用”-“<br><code>pool[ -(pool.USERID.str.contains(&#39;\|&#39;))]</code></p>
+<p>df中index不是column！</p>
+<h1 id="NumPy"><a href="#NumPy" class="headerlink" title="NumPy"></a>NumPy</h1><p>np.allclose : 检查是否近似<br><code>np.allclose(names.groupby([&#39;year&#39;,&#39;sex&#39;]).prop.sum(),1)</code></p>
+<p>四舍五入<br><code>np.round(3.45, 0)</code></p>
+<p>取随机整数<br><code>np.random.randint(50) # 0~49</code></p>
+<p>np.array配合查找df<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">mask = np.array([<span class="string">'lesl'</span> <span class="keyword">in</span> x.lower() <span class="keyword">for</span> x <span class="keyword">in</span> all_names])</div><div class="line">lesley_like = all_names[mask]</div></pre></td></tr></table></figure></p>
+<p>创建ndarray：<br><code>arr1 = np.arra([...])</code><br>查看数组维度<br><code>arr1.ndim</code><br>数组形状：<br><code>arr1.shape</code><br>数据结构<br><code>arr1.dtype</code><br>使用zeros或ones创建长度或形状全0或全1的数组<br><code>np.zeros(10)或np.zeros((3,6))</code><br>使用empty创建一个没有任何具体值的数组（并非返回全0数组，很多情况下返回未初始化的垃圾值）<br>python内置range的数组版本：<br><code>np.arange(10)</code><br>创建一个正方的N*N单位矩阵（对角线为1，其余为0）<br><code>np.eye(n)</code></p>
+<p>dtype是一个特殊的对象，它含有ndarray将一块内存解释为特定数据类型所需的信息<br><code>np.array([1,2,3], dtype=np.float64)</code><br><code>np.array([1,2,3], dtype=np.int32)</code></p>
+<p>numpy数据类型：<br>int8, uint8<br>int16, uint16<br>int32, uint32<br>int64, uint64<br>float16<br>float32  标准的单精度浮点数。与c的float兼容<br>float64   标准的双精度浮点数。与c的double和python的float对象兼容<br>float128<br>complex64, complex128, complex256   复数<br>bool<br>object Python对象类型<br>string<em> 固定长度的字符串类型（每个字符1个字节）<br>unicode</em> 固定长度的unicode类型（字节数由平台决定）</p>
+<p>使用astype转换dtype（总会创建一个新数组）<br>arr.astype(np.float64)</p>
+<p>不同大小的数组之间的运算叫做广播。</p>
+<p>基本的索引和切片：<br><code>arr[5]</code><br><code>arr[5:8]</code><br><code>arr[5:8] = 12</code><br>注意numpy数组跟python列表最大的不同是：数组切片是原始数组的视图，也就是数据并不会被复制。<br>如果需要复制，需要显式调用copy：<code>arr[5:8].copy()</code><br>只有冒号表示选取整个轴：<br><code>arr[:]</code></p>
+<p>数组的比较运算也是矢量化的，names == ‘Bob’将返回一个布尔型数组<br>“非”可以用!=或负号-<br>应用多个布尔条件，使用&amp;、|<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">mask = (names == ‘Bob’) | (names == ‘Will’)</div><div class="line">data[mask]</div></pre></td></tr></table></figure></p>
+<p>通过布尔型索引选取数组中的数据，将总是创建数据的副本。</p>
+<p>按比例生成随机数据：</p>
+<img src="/2017/07/21/Python科学计算库常用API入门/Image.png" alt="Image.png" title="">
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># 按比例生成随机日期</span></div><div class="line">np.random.choice(date_df[<span class="string">'date'</span>].astype(int),<span class="number">100</span>,p=date_df[<span class="string">'per'</span>].tolist())</div><div class="line"><span class="comment"># 按比例生成随机时间</span></div><div class="line">np.random.choice(time_df[<span class="string">'hour'</span>].astype(int),<span class="number">100</span>,p=time_df[<span class="string">'radio'</span>].tolist())</div><div class="line">choice(a[, size, replace, p])</div></pre></td></tr></table></figure>
+<p>三、Matplotlib 可视化<br>使用绘图主要是用于特征工程，发现暂时未知的因素对最终结果的影响<br>中文乱码的解决：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#coding:utf-8</span></div><div class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</div><div class="line">plt.rcParams[<span class="string">'font.sans-serif'</span>]=[<span class="string">'SimHei'</span>] <span class="comment">#用来正常显示中文标签</span></div><div class="line">plt.rcParams[<span class="string">'axes.unicode_minus'</span>]=<span class="keyword">False</span> <span class="comment">#用来正常显示负号</span></div><div class="line"><span class="comment">#有中文出现的情况，需要u'内容'</span></div></pre></td></tr></table></figure></p>
+<p>Python绘图鼻祖，<br>导入：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</div><div class="line">plt.style.use(<span class="string">'ggplot'</span>)</div><div class="line">%matplotlib inline</div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</div></pre></td></tr></table></figure></p>
+<p>直方图：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">fig, ax = plt.subplots(figsize=(<span class="number">6</span>,<span class="number">4</span>))</div><div class="line">ax.hist(df[<span class="string">'petal width'</span>], color=<span class="string">'black'</span>);</div><div class="line">ax.set_ylabel(<span class="string">'Count'</span>, fontsize=<span class="number">12</span>)</div><div class="line">ax.set_xlabel(<span class="string">'Width'</span>, fontsize=<span class="number">12</span>)</div><div class="line">plt.title(<span class="string">'Iris Petal Width'</span>, fontsize=<span class="number">14</span>, y=<span class="number">1.01</span>)</div></pre></td></tr></table></figure></p>
+<p>散点图：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">fig, ax = plt.subplots(figsize=(<span class="number">6</span>,<span class="number">6</span>))</div><div class="line">ax.scatter(df[<span class="string">'petal width'</span>],df[<span class="string">'petal length'</span>], color=<span class="string">'green'</span>)</div><div class="line">ax.set_xlabel(<span class="string">'Petal Width'</span>)</div><div class="line">ax.set_ylabel(<span class="string">'Petal Length'</span>)</div><div class="line">ax.set_title(<span class="string">'Petal Scatterplot'</span>)</div></pre></td></tr></table></figure></p>
+<p>简单线图：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">fig, ax = plt.subplots(figsize=(<span class="number">6</span>,<span class="number">6</span>))</div><div class="line">ax.plot(df[<span class="string">'petal length'</span>], color=<span class="string">'blue'</span>)</div><div class="line">ax.set_xlabel(<span class="string">'Specimen Number'</span>)</div><div class="line">ax.set_ylabel(<span class="string">'Petal Length'</span>)</div><div class="line">ax.set_title(<span class="string">'Petal Length Plot'</span>)</div></pre></td></tr></table></figure></p>
+<p>条形图：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">fig, ax = plt.subplots(figsize=(<span class="number">6</span>,<span class="number">6</span>))</div><div class="line">bar_width = <span class="number">.8</span></div><div class="line">labels = [x <span class="keyword">for</span> x <span class="keyword">in</span> df.columns <span class="keyword">if</span> <span class="string">'length'</span> <span class="keyword">in</span> x <span class="keyword">or</span> <span class="string">'width'</span> <span class="keyword">in</span> x]</div><div class="line">ver_y = [df[df[<span class="string">'class'</span>]==<span class="string">'Iris-versicolor'</span>][x].mean() <span class="keyword">for</span> x <span class="keyword">in</span> labels]</div><div class="line">vir_y = [df[df[<span class="string">'class'</span>]==<span class="string">'Iris-virginica'</span>][x].mean() <span class="keyword">for</span> x <span class="keyword">in</span> labels]</div><div class="line">set_y = [df[df[<span class="string">'class'</span>]==<span class="string">'Iris-setosa'</span>][x].mean() <span class="keyword">for</span> x <span class="keyword">in</span> labels]</div><div class="line">x = np.arange(len(labels))</div><div class="line">ax.bar(x, vir_y, bar_width, bottom=set_y, color=<span class="string">'darkgrey'</span>)</div><div class="line">ax.bar(x, set_y, bar_width, bottom=ver_y, color=<span class="string">'white'</span>)</div><div class="line">ax.bar(x, ver_y, bar_width, color=<span class="string">'black'</span>)</div><div class="line">ax.set_xticks(x + (bar_width/<span class="number">2</span>))</div><div class="line">ax.set_xticklabels(labels, rotation=<span class="number">-70</span>, fontsize=<span class="number">12</span>);</div><div class="line">ax.set_title(<span class="string">'Mean Feature Measurement By Class'</span>, y=<span class="number">1.01</span>)</div><div class="line">ax.legend([<span class="string">'Virginica'</span>,<span class="string">'Setosa'</span>,<span class="string">'Versicolor'</span>])</div></pre></td></tr></table></figure></p>
+<p>小提琴图：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">fig, ax = plt.subplots(<span class="number">2</span>, <span class="number">2</span>, figsize=(<span class="number">7</span>, <span class="number">7</span>))</div><div class="line">sns.set(style=<span class="string">'white'</span>, palette=<span class="string">'muted'</span>)</div><div class="line">sns.violinplot(x=df[<span class="string">'class'</span>], y=df[<span class="string">'sepal length'</span>], ax=ax[<span class="number">0</span>,<span class="number">0</span>])</div><div class="line">sns.violinplot(x=df[<span class="string">'class'</span>], y=df[<span class="string">'sepal width'</span>], ax=ax[<span class="number">0</span>,<span class="number">1</span>])</div><div class="line">sns.violinplot(x=df[<span class="string">'class'</span>], y=df[<span class="string">'petal length'</span>], ax=ax[<span class="number">1</span>,<span class="number">0</span>])</div><div class="line">sns.violinplot(x=df[<span class="string">'class'</span>], y=df[<span class="string">'petal width'</span>], ax=ax[<span class="number">1</span>,<span class="number">1</span>])</div><div class="line">fig.suptitle(<span class="string">'Violin Plots'</span>, fontsize=<span class="number">16</span>, y=<span class="number">1.03</span>)</div><div class="line"><span class="keyword">for</span> i <span class="keyword">in</span> ax.flat:</div><div class="line">     plt.setp(i.get_xticklabels(), rotation=<span class="number">-90</span>)</div><div class="line">fig.tight_layout()</div></pre></td></tr></table></figure></p>
+<h1 id="IPython"><a href="#IPython" class="headerlink" title="IPython"></a>IPython</h1><p>内省：<br>任何变量后输入<code>?</code>，可以展示此对象的通用信息<br>变量或方法后输入<code>??</code>，可以展示源码<br>配合<code>*</code>可以实现查找IPython命名空间，如<code>np.*load*?</code></p>
+<p>使用<code>%run f.py</code>运行f.py脚本</p>
+<p>通过<code>Ctrl - C</code>中断正在执行的代码</p>
+<p>魔术命令：<br><code>%timeit</code>在任何语句前，检测执行时间<br>使用<code>?</code>查看魔术命令选项，如<code>%reset?</code><br><code>%quickref</code>或<code>%magic</code>，获取魔术命令文档</p>
+<p>最近的两个输出结果分别保存在<code>_</code>和<code>__</code>中</p>
+<p>使用<code>%cd</code> 、<code>%pwd</code>执行常见操作</p>
+<p>使用<code>!</code>执行shell命令</p>
+<p>使用 <code>%bookmark</code>目录书签</p>
+<p>表格打印<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> IPython.core.interactiveshell <span class="keyword">import</span> InteractiveShell</div><div class="line">InteractiveShell.ast_node_interactivity = <span class="string">"all"</span> <span class="comment"># 不必使用display或print也可以打印</span></div><div class="line"></div><div class="line"><span class="keyword">from</span> IPython.display <span class="keyword">import</span> display, HTML</div></pre></td></tr></table></figure></p>
+<hr>
+<p>以下内容留待以后补充</p>
+<p>四、Seaborn</p>
+<p>使用pairplot查看不同特征维度pair下数据的空间分布状况（散点图和直方图）：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> seaborn <span class="keyword">as</span> sns</div><div class="line">sns.pairplot(df, hue=<span class="string">"class"</span>) <span class="comment"># hue控制区分颜色的变量名称，这里用class列中的变量区别颜色</span></div></pre></td></tr></table></figure></p>
+<p>五、Scikit-learn</p>
+<p>sklearn.metrics.accuracy_score(y_true, y_pred)</p>
+<p>六、statsmodels<br>用于探索数据、估计模型，并运行统计校验。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/python/" rel="tag"># python</a>
+          
+            <a href="/tags/data-analysis/" rel="tag"># data-analysis</a>
+          
+            <a href="/tags/pandas/" rel="tag"># pandas</a>
+          
+            <a href="/tags/numpy/" rel="tag"># numpy</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/07/05/Redis连接池获取连接失败原因调查一则/" rel="next" title="从Redis连接池获取连接失败的原因说起">
+                <i class="fa fa-chevron-left"></i> 从Redis连接池获取连接失败的原因说起
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/08/24/解读Disruptor系列-Disruptor论文精选/" rel="prev" title="解读Disruptor系列-Disruptor论文精选">
+                解读Disruptor系列-Disruptor论文精选 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Pandas"><span class="nav-number">1.</span> <span class="nav-text">Pandas</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#DataFrame-Series常用"><span class="nav-number">1.1.</span> <span class="nav-text">DataFrame/Series常用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DataFrame"><span class="nav-number">1.1.1.</span> <span class="nav-text">DataFrame</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Series"><span class="nav-number">1.1.2.</span> <span class="nav-text">Series</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#I-O-Basics"><span class="nav-number">1.2.</span> <span class="nav-text">I/O Basics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据合并："><span class="nav-number">1.3.</span> <span class="nav-text">数据合并：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#持久化"><span class="nav-number">1.4.</span> <span class="nav-text">持久化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其他"><span class="nav-number">1.5.</span> <span class="nav-text">其他</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#NumPy"><span class="nav-number">2.</span> <span class="nav-text">NumPy</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#IPython"><span class="nav-number">3.</span> <span class="nav-text">IPython</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/07/21/Python科学计算库常用API入门/';
+          this.page.identifier = '2017/07/21/Python科学计算库常用API入门/';
+          this.page.title = 'Python科学计算库常用API入门';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

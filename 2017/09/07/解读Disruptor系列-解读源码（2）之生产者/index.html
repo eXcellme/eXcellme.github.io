@@ -1,0 +1,889 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="之前我们一起分析了Disruptor的初始化和启动代码，接下来我们来分析下生产者的发布代码。还不太了解的同学建议看看我之前发的Disruptor原理翻译和导读文章，尤其是一些名词概念最好要清楚是做什么用的。 1 生产者线程生产者一般就是我们的应用线程，在发布通常使用一个EventTranslator将数据转移到RingBuffer上，因为不涉及共享数据和实例变量，通常使用同一个EventTrans">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列--解读源码（2）之生产者">
+<meta property="og:url" content="http://coderjerry.com/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="之前我们一起分析了Disruptor的初始化和启动代码，接下来我们来分析下生产者的发布代码。还不太了解的同学建议看看我之前发的Disruptor原理翻译和导读文章，尤其是一些名词概念最好要清楚是做什么用的。 1 生产者线程生产者一般就是我们的应用线程，在发布通常使用一个EventTranslator将数据转移到RingBuffer上，因为不涉及共享数据和实例变量，通常使用同一个EventTrans">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-584f7853a7fa4435.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-b8149b7c86400b15.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-d298e9c5785b686a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-da7008bab4e98b00.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-2f066aa98d694bda.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-c5aea4ed591dac10.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-739c258330b18bdf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.385Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列--解读源码（2）之生产者">
+<meta name="twitter:description" content="之前我们一起分析了Disruptor的初始化和启动代码，接下来我们来分析下生产者的发布代码。还不太了解的同学建议看看我之前发的Disruptor原理翻译和导读文章，尤其是一些名词概念最好要清楚是做什么用的。 1 生产者线程生产者一般就是我们的应用线程，在发布通常使用一个EventTranslator将数据转移到RingBuffer上，因为不涉及共享数据和实例变量，通常使用同一个EventTrans">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/931112-584f7853a7fa4435.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/"/>
+
+
+
+
+
+  <title>解读Disruptor系列--解读源码（2）之生产者 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列--解读源码（2）之生产者</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-07T17:35:38+08:00">
+                2017-09-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/09/07/解读Disruptor系列-解读源码（2）之生产者/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前我们一起分析了Disruptor的初始化和启动代码，接下来我们来分析下生产者的发布代码。还不太了解的同学建议看看我之前发的Disruptor原理翻译和导读文章，尤其是一些名词概念最好要清楚是做什么用的。</p>
+<h2 id="1-生产者线程"><a href="#1-生产者线程" class="headerlink" title="1 生产者线程"></a>1 生产者线程</h2><p>生产者一般就是我们的应用线程，在发布通常使用一个EventTranslator将数据转移到RingBuffer上，因为不涉及共享数据和实例变量，通常使用同一个EventTranslator实例进行操作（注：translate经常是“翻译”的意思，但其实还有“ move from one place or condition to another.”的转移、转换的意思）。<br>根据同一事件传入参数的多少，可以选择不同接口接收参数。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-584f7853a7fa4435.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">* 生产者在发布事件时，使用翻译器将原始对象设置到RingBuffer的对象中</div><div class="line">*/</div><div class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">IntToExampleEventTranslator</span> <span class="keyword">implements</span> <span class="title">EventTranslatorOneArg</span>&lt;<span class="title">ExampleEvent</span>, <span class="title">Integer</span>&gt;</span>&#123;</div><div class="line"></div><div class="line">  <span class="keyword">static</span> <span class="keyword">final</span> IntToExampleEventTranslator INSTANCE = <span class="keyword">new</span> IntToExampleEventTranslator();</div><div class="line"></div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">translateTo</span><span class="params">(ExampleEvent event, <span class="keyword">long</span> sequence, Integer arg0)</span> </span>&#123;</div><div class="line">    event.data = arg0 ;</div><div class="line">    System.err.println(<span class="string">"put data "</span>+sequence+<span class="string">", "</span>+event+<span class="string">", "</span>+arg0);</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 生产线程0</span></div><div class="line">Thread produceThread0 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> x = <span class="number">0</span>;</div><div class="line">    <span class="keyword">while</span>(x++ &lt; events / <span class="number">2</span>)&#123; <span class="comment">// 除了下面这行代码，其他都没有关系</span></div><div class="line">      disruptor.publishEvent(IntToExampleEventTranslator.INSTANCE, x);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;);</div><div class="line"><span class="comment">// 生产线程1</span></div><div class="line">Thread produceThread1 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> x = <span class="number">0</span>;</div><div class="line">    <span class="keyword">while</span>(x++ &lt; events / <span class="number">2</span>)&#123;</div><div class="line">      disruptor.publishEvent(IntToExampleEventTranslator.INSTANCE, x);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;);</div><div class="line"></div><div class="line">produceThread0.start();</div><div class="line">produceThread1.start();</div></pre></td></tr></table></figure>
+<p>在demo中，我们实例化并启动了两个线程，用来生产事件放置到Disruptor中。<br>接下来我们跟随源码一点点深入。</p>
+<h2 id="2-生产事件的整体逻辑"><a href="#2-生产事件的整体逻辑" class="headerlink" title="2 生产事件的整体逻辑"></a>2 生产事件的整体逻辑</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Disruptor.java</span></div><div class="line"><span class="comment">/**</span></div><div class="line">* Publish an event to the ring buffer. 使用给定的事件翻译器，发布事件</div><div class="line">*</div><div class="line">* <span class="doctag">@param</span> eventTranslator the translator that will load data into the event.</div><div class="line">* <span class="doctag">@param</span> arg            A single argument to load into the event</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> &lt;A&gt; <span class="function"><span class="keyword">void</span> <span class="title">publishEvent</span><span class="params">(<span class="keyword">final</span> EventTranslatorOneArg&lt;T, A&gt; eventTranslator, <span class="keyword">final</span> A arg)</span></span></div><div class="line">&#123;</div><div class="line">    ringBuffer.publishEvent(eventTranslator, arg);</div><div class="line">&#125;</div><div class="line">之前也讲过，Disruptor这个类是一个辅助类，在发布事件时其实是委托给RingBuffer完成发布操作。</div><div class="line">RingBuffer.publishEvent()的逻辑大概分为两个步骤：第一步先占有RingBuffer上的一个可用位置，我们简称为“占坑”；第二步在可用位置发布数据，我们简称为“填坑”。</div><div class="line"><span class="comment">// RingBuffer</span></div><div class="line"><span class="keyword">public</span> &lt;A&gt; <span class="function"><span class="keyword">void</span> <span class="title">publishEvent</span><span class="params">(EventTranslatorOneArg&lt;E, A&gt; translator, A arg0)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">final</span> <span class="keyword">long</span> sequence = sequencer.next(); <span class="comment">// 第一步 占坑</span></div><div class="line">    translateAndPublish(translator, sequence, arg0); <span class="comment">// 第二步 填坑</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其中第二步中，在填坑完毕还要调用Sequencer接口的publish方法对外发布事件。为啥呢？先留个疑问。<br>在第一步占坑中，首先通过调用Sequencer.next()获取RingBuffer实例下一个能用的序号。<br>AbstractSequencer作为一个抽象类，实现了Sequencer接口，是单生产者Sequencer和多生产者Sequencer的父类。</p>
+<h2 id="3-Disruptor的核心–Sequencer接口"><a href="#3-Disruptor的核心–Sequencer接口" class="headerlink" title="3 Disruptor的核心–Sequencer接口"></a>3 Disruptor的核心–Sequencer接口</h2><p>为什么说Sequencer是Disruptor的核心呢？其实这也不是我说的，是Disruptor官方<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction" target="_blank" rel="external">Wiki Introduction</a>上说的：<br><img src="http://upload-images.jianshu.io/upload_images/931112-b8149b7c86400b15.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"><br>Sequencer是用来保证生产者和消费者之间正确、高速传递数据的。我们先来看看以生产者的角度看Sequencer有什么作用。<br>先来张类图。<br><img src="http://upload-images.jianshu.io/upload_images/931112-d298e9c5785b686a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Sequencer类图"><br>下边是Sequencer接口及其父接口Cursored、Sequenced 定义。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Sequencer</span></div><div class="line"><span class="comment">/**</span></div><div class="line">* Coordinates claiming sequences for access to a data structure while tracking dependent &#123;<span class="doctag">@link</span> Sequence&#125;s</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Sequencer</span> <span class="keyword">extends</span> <span class="title">Cursored</span>, <span class="title">Sequenced</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Set to -1 as sequence starting point</div><div class="line">    * 序号开始位置</div><div class="line">    */</div><div class="line">    <span class="keyword">long</span> INITIAL_CURSOR_VALUE = -<span class="number">1L</span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Claim a specific sequence.  Only used if initialising the ring buffer to</div><div class="line">    * a specific value.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequence The sequence to initialise too.</div><div class="line">    * 声明指定序号，只用在初始化RingBuffer到指定值，基本上不用了</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">claim</span><span class="params">(<span class="keyword">long</span> sequence)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Confirms if a sequence is published and the event is available for use; non-blocking.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequence of the buffer to check</div><div class="line">    * <span class="doctag">@return</span> true if the sequence is available for use, false if not</div><div class="line">    * 用非阻塞方式，确认某个序号是否已经发布且事件可用。</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isAvailable</span><span class="params">(<span class="keyword">long</span> sequence)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Add the specified gating sequences to this instance of the Disruptor.  They will</div><div class="line">    * safely and atomically added to the list of gating sequences.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> gatingSequences The sequences to add.</div><div class="line">    * 增加门控序列（消费者序列），用于生产者在生产时避免追尾消费者</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">addGatingSequences</span><span class="params">(Sequence... gatingSequences)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Remove the specified sequence from this sequencer.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequence to be removed.</div><div class="line">    * <span class="doctag">@return</span> &lt;tt&gt;true&lt;/tt&gt; if this sequence was found, &lt;tt&gt;false&lt;/tt&gt; otherwise.</div><div class="line">    * 从门控序列中移除指定序列</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">removeGatingSequence</span><span class="params">(Sequence sequence)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Create a new SequenceBarrier to be used by an EventProcessor to track which messages</div><div class="line">    * are available to be read from the ring buffer given a list of sequences to track.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequencesToTrack</div><div class="line">    * <span class="doctag">@return</span> A sequence barrier that will track the specified sequences.</div><div class="line">    * <span class="doctag">@see</span> SequenceBarrier</div><div class="line">    * 消费者使用，用于追踪指定序列（通常是上一组消费者的序列）</div><div class="line">    */</div><div class="line">    <span class="function">SequenceBarrier <span class="title">newBarrier</span><span class="params">(Sequence... sequencesToTrack)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get the minimum sequence value from all of the gating sequences</div><div class="line">    * added to this ringBuffer.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> The minimum gating sequence or the cursor sequence if</div><div class="line">    * no sequences have been added.</div><div class="line">    * 获取追踪序列中最小的序列</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getMinimumSequence</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get the highest sequence number that can be safely read from the ring buffer.  Depending</div><div class="line">    * on the implementation of the Sequencer this call may need to scan a number of values</div><div class="line">    * in the Sequencer.  The scan will range from nextSequence to availableSequence.  If</div><div class="line">    * there are no available values &lt;code&gt;&gt;= nextSequence&lt;/code&gt; the return value will be</div><div class="line">    * &lt;code&gt;nextSequence - 1&lt;/code&gt;.  To work correctly a consumer should pass a value that</div><div class="line">    * is 1 higher than the last sequence that was successfully processed.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> nextSequence      The sequence to start scanning from.</div><div class="line">    * <span class="doctag">@param</span> availableSequence The sequence to scan to.</div><div class="line">    * <span class="doctag">@return</span> The highest value that can be safely read, will be at least &lt;code&gt;nextSequence - 1&lt;/code&gt;.</div><div class="line">    *</div><div class="line">    * 获取能够从环形缓冲读取的最高的序列号。依赖Sequencer的实现，可能会扫描Sequencer的一些值。扫描从nextSequence</div><div class="line">    * 到availableSequence。如果没有大于等于nextSequence的可用值，返回值将为nextSequence-1。为了工作正常，消费者</div><div class="line">    * 应该传递一个比最后成功处理的序列值大1的值。</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getHighestPublishedSequence</span><span class="params">(<span class="keyword">long</span> nextSequence, <span class="keyword">long</span> availableSequence)</span></span>;</div><div class="line"></div><div class="line">    &lt;T&gt; <span class="function">EventPoller&lt;T&gt; <span class="title">newPoller</span><span class="params">(DataProvider&lt;T&gt; provider, Sequence... gatingSequences)</span></span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Cursored.java</span></div><div class="line"><span class="comment">/**</span></div><div class="line">* Implementors of this interface must provide a single long value</div><div class="line">* that represents their current cursor value.  Used during dynamic</div><div class="line">* add/remove of Sequences from a</div><div class="line">* &#123;<span class="doctag">@link</span> SequenceGroups#addSequences(Object, java.util.concurrent.atomic.AtomicReferenceFieldUpdater, Cursored, Sequence...)&#125;.</div><div class="line">* 游标接口，用于获取生产者当前游标位置</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Cursored</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get the current cursor value.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> current cursor value</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getCursor</span><span class="params">()</span></span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Sequenced.java</span></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Sequenced</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * The capacity of the data structure to hold entries.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> the size of the RingBuffer.</div><div class="line">    * 获取环形缓冲的大小</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">int</span> <span class="title">getBufferSize</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Has the buffer got capacity to allocate another sequence.  This is a concurrent</div><div class="line">    * method so the response should only be taken as an indication of available capacity.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> requiredCapacity in the buffer</div><div class="line">    * <span class="doctag">@return</span> true if the buffer has the capacity to allocate the next sequence otherwise false.</div><div class="line">    * 判断是否含有指定的可用容量</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">hasAvailableCapacity</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> requiredCapacity)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get the remaining capacity for this sequencer.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> The number of slots remaining.</div><div class="line">    * 剩余容量</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">remainingCapacity</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Claim the next event in sequence for publishing.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> the claimed sequence value</div><div class="line">    * 生产者发布时，申请下一个序号</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">next</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Claim the next n events in sequence for publishing.  This is for batch event producing.  Using batch producing</div><div class="line">    * requires a little care and some math.</div><div class="line">    * &lt;pre&gt;</div><div class="line">    * int n = 10;</div><div class="line">    * long hi = sequencer.next(n);</div><div class="line">    * long lo = hi - (n - 1);</div><div class="line">    * for (long sequence = lo; sequence &lt;= hi; sequence++) &#123;</div><div class="line">    *    // Do work.</div><div class="line">    * &#125;</div><div class="line">    * sequencer.publish(lo, hi);</div><div class="line">    * &lt;/pre&gt;</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> n the number of sequences to claim</div><div class="line">    * <span class="doctag">@return</span> the highest claimed sequence value</div><div class="line">    * 申请n个序号，用于批量发布</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Attempt to claim the next event in sequence for publishing.  Will return the</div><div class="line">    * number of the slot if there is at least &lt;code&gt;requiredCapacity&lt;/code&gt; slots</div><div class="line">    * available.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> the claimed sequence value</div><div class="line">    * <span class="doctag">@throws</span> InsufficientCapacityException</div><div class="line">    * next()的非阻塞模式</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">tryNext</span><span class="params">()</span> <span class="keyword">throws</span> InsufficientCapacityException</span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Attempt to claim the next n events in sequence for publishing.  Will return the</div><div class="line">    * highest numbered slot if there is at least &lt;code&gt;requiredCapacity&lt;/code&gt; slots</div><div class="line">    * available.  Have a look at &#123;<span class="doctag">@link</span> Sequencer#next()&#125; for a description on how to</div><div class="line">    * use this method.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> n the number of sequences to claim</div><div class="line">    * <span class="doctag">@return</span> the claimed sequence value</div><div class="line">    * <span class="doctag">@throws</span> InsufficientCapacityException</div><div class="line">    * next(n)的非阻塞模式</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">tryNext</span><span class="params">(<span class="keyword">int</span> n)</span> <span class="keyword">throws</span> InsufficientCapacityException</span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Publishes a sequence. Call when the event has been filled.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequence</div><div class="line">    * 数据填充后，发布此序号</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">long</span> sequence)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Batch publish sequences.  Called when all of the events have been filled.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> lo first sequence number to publish</div><div class="line">    * <span class="doctag">@param</span> hi last sequence number to publish</div><div class="line">    * 批量发布序号</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">long</span> lo, <span class="keyword">long</span> hi)</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="3-1-单生产者发布事件"><a href="#3-1-单生产者发布事件" class="headerlink" title="3.1 单生产者发布事件"></a>3.1 单生产者发布事件</h3><p>下边先看使用单生产者SingleProducerSequencer具体是怎么占坑的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// SingleProducerSequencer.java</span></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> next(<span class="number">1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">* <span class="doctag">@see</span> Sequencer#next(int)</div><div class="line">*/</div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"n must be &gt; 0"</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 复制上次申请完毕的序列值</span></div><div class="line">    <span class="keyword">long</span> nextValue = <span class="keyword">this</span>.nextValue;</div><div class="line">    <span class="comment">// 加n，得到本次需要申请的序列值，单个发送n为1</span></div><div class="line">    <span class="keyword">long</span> nextSequence = nextValue + n; <span class="comment">// 本次要验证的值</span></div><div class="line">    <span class="comment">// 可能发生绕环的点，本次申请值 - 一圈长度</span></div><div class="line">    <span class="keyword">long</span> wrapPoint = nextSequence - bufferSize; <span class="comment">// 400米跑到，小明跑了599米，小红跑了200米。小红不动，小明再跑一米就撞翻小红的那个点，叫做绕环点wrapPoint。</span></div><div class="line">    <span class="keyword">long</span> cachedGatingSequence = <span class="keyword">this</span>.cachedValue; <span class="comment">// 数值最小的序列值，也就是最慢消费者</span></div><div class="line">    <span class="comment">// wrapPoint 等于 cachedGatingSequence 将发生绕环行为，生产者将在环上，从后方覆盖未消费的事件。</span></div><div class="line">    <span class="comment">// 如果即将生产者超一圈从后方追消费者尾（要申请的序号落了最慢消费者一圈）或 消费者追生产者尾，将进行等待。后边这种情况应该不会发生吧？</span></div><div class="line">    <span class="comment">// 没有空坑位，将进入循环等待。</span></div><div class="line">    <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; nextValue)</div><div class="line">    &#123;</div><div class="line">        cursor.setVolatile(nextValue);  <span class="comment">// StoreLoad fence</span></div><div class="line"></div><div class="line">        <span class="keyword">long</span> minSequence;</div><div class="line">        <span class="comment">// 只有当消费者消费，向前移动后，才能跳出循环</span></div><div class="line">        <span class="comment">// 由于外层判断使用的是缓存的消费者序列最小值，这里使用真实的消费者序列进行判断，并将最新结果在跳出while循环之后进行缓存</span></div><div class="line">        <span class="keyword">while</span> (wrapPoint &gt; (minSequence = Util.getMinimumSequence(gatingSequences, nextValue)))</div><div class="line">        &#123;  <span class="comment">// 环形等待的消费者</span></div><div class="line">            waitStrategy.signalAllWhenBlocking();</div><div class="line">            LockSupport.parkNanos(<span class="number">1L</span>); <span class="comment">// <span class="doctag">TODO:</span> Use waitStrategy to spin?</span></div><div class="line">        &#125;</div><div class="line">        <span class="comment">// 当消费者向前消费后，更新缓存的最小序号</span></div><div class="line">        <span class="keyword">this</span>.cachedValue = minSequence;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 将成功申请的序号赋值给对象实例变量</span></div><div class="line">    <span class="keyword">this</span>.nextValue = nextSequence;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> nextSequence;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>next()占坑成功将会返回坑位号，回到RingBuffer的publishEvent方法，执行translateAndPublish方法，进行填坑和发布操作。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// RingBuffer.java</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">translateAndPublish</span><span class="params">(EventTranslator&lt;E&gt; translator, <span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">try</span></div><div class="line">    &#123;</div><div class="line">        translator.translateTo(get(sequence), sequence);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">finally</span></div><div class="line">    &#123;</div><div class="line">        sequencer.publish(sequence);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>translator参数用户定义的对EventTranslator接口的实现对象。<br>上文已经介绍过EventTranslator接口，除EventTranslator外，还有EventTranslatorOneArg，EventTranslatorTwoArg，EventTranslatorThreeArg，EventTranslatorVararg。功能是将给定的数据填充到指定坑位的对象（因为RingBuffer上已经预先分配了对象）上，只不过分别对应不同参数。简单看下EventTranslatorOneArg接口定义。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">EventTranslatorOneArg</span>&lt;<span class="title">T</span>, <span class="title">A</span>&gt;</span></div><div class="line">&#123;</div><div class="line">  <span class="comment">/**</span></div><div class="line">  * Translate a data representation into fields set in given event</div><div class="line">  *</div><div class="line">  * <span class="doctag">@param</span> event into which the data should be translated.</div><div class="line">  * <span class="doctag">@param</span> sequence that is assigned to event.</div><div class="line">  * <span class="doctag">@param</span> arg0 The first user specified argument to the translator</div><div class="line">  */</div><div class="line">  <span class="function"><span class="keyword">void</span> <span class="title">translateTo</span><span class="params">(<span class="keyword">final</span> T event, <span class="keyword">long</span> sequence, <span class="keyword">final</span> A arg0)</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在放好数据后，就可以调用sequencer的publish方法发布对象了。首先是更新当前游标，更新完毕再通知等待中的消费者，消费者将继续消费。关于消费者的等待策略，后续还会讲到。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// SingleProducerSequencer.java </span></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123;  <span class="comment">// 在发布此位置可用时，需要更新Sequencer内部游标值，并在使用阻塞等待策略时，通知等待可用事件的消费者进行继续消费</span></div><div class="line">    cursor.set(sequence);</div><div class="line">    <span class="comment">// 除signalAllWhenBlocking外都是空实现</span></div><div class="line">    waitStrategy.signalAllWhenBlocking();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// BlockingWaitStrategy.java</span></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">signalAllWhenBlocking</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">    lock.lock();</div><div class="line">    <span class="keyword">try</span></div><div class="line">    &#123;</div><div class="line">        processorNotifyCondition.signalAll();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">finally</span></div><div class="line">    &#123;</div><div class="line">        lock.unlock();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="3-2-插播Disruptor中的高效AtomicLong–Sequence"><a href="#3-2-插播Disruptor中的高效AtomicLong–Sequence" class="headerlink" title="3.2 插播Disruptor中的高效AtomicLong–Sequence"></a>3.2 插播Disruptor中的高效AtomicLong–Sequence</h3><p>注意那个cursor，这个cursor可不是简单的long类型，而是Disruptor内部实现的Sequence类。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">LhsPadding</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Value</span> <span class="keyword">extends</span> <span class="title">LhsPadding</span></span></div><div class="line">&#123;   <span class="comment">// value的前后各有7个long变量，用于缓存行填充，前后各7个保证了不管怎样，当64位的缓存行加载时value，不会有其他变量共享缓存行，从而解决了伪共享问题</span></div><div class="line">    <span class="keyword">protected</span> <span class="keyword">volatile</span> <span class="keyword">long</span> value;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">RhsPadding</span> <span class="keyword">extends</span> <span class="title">Value</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p9, p10, p11, p12, p13, p14, p15;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * &lt;p&gt;Concurrent sequence class used for tracking the progress of</div><div class="line"> * the ring buffer and event processors.  Support a number</div><div class="line"> * of concurrent operations including CAS and order writes.</div><div class="line"> *</div><div class="line"> * &lt;p&gt;Also attempts to be more efficient with regards to false</div><div class="line"> * sharing by adding padding around the volatile field.</div><div class="line"> * Sequence可以按照AtomicLong来理解，除了Sequence消除了伪共享问题，更加高效</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sequence</span> <span class="keyword">extends</span> <span class="title">RhsPadding</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_VALUE = -<span class="number">1L</span>;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> VALUE_OFFSET;</div><div class="line"></div><div class="line">    <span class="keyword">static</span></div><div class="line">    &#123;</div><div class="line">        UNSAFE = Util.getUnsafe();</div><div class="line">        <span class="keyword">try</span></div><div class="line">        &#123;</div><div class="line">            VALUE_OFFSET = UNSAFE.objectFieldOffset(Value.class.getDeclaredField(<span class="string">"value"</span>));</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e)</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Create a sequence initialised to -1.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sequence</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>(INITIAL_VALUE);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Create a sequence with a specified initial value.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@param</span> initialValue The initial value for this sequence.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sequence</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> initialValue)</span></span></div><div class="line">    &#123;</div><div class="line">        UNSAFE.putOrderedLong(<span class="keyword">this</span>, VALUE_OFFSET, initialValue);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Perform a volatile read of this sequence's value.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@return</span> The current value of the sequence.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">get</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> value;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Perform an ordered write of this sequence.  The intent is</div><div class="line">     * a Store/Store barrier between this write and any previous</div><div class="line">     * store.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@param</span> value The new value for the sequence.</div><div class="line">     * 此方法等同于AtomicLong#lazySet(long newValue)，</div><div class="line">     * 和直接修改volatile修饰的value相比，非阻塞，更高效，但更新的值会稍迟一点看到</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> value)</span></span></div><div class="line">    &#123;</div><div class="line">        UNSAFE.putOrderedLong(<span class="keyword">this</span>, VALUE_OFFSET, value);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Performs a volatile write of this sequence.  The intent is</div><div class="line">     * a Store/Store barrier between this write and any previous</div><div class="line">     * write and a Store/Load barrier between this write and any</div><div class="line">     * subsequent volatile read.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@param</span> value The new value for the sequence.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setVolatile</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> value)</span></span></div><div class="line">    &#123;</div><div class="line">        UNSAFE.putLongVolatile(<span class="keyword">this</span>, VALUE_OFFSET, value);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Perform a compare and set operation on the sequence.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@param</span> expectedValue The expected current value.</div><div class="line">     * <span class="doctag">@param</span> newValue The value to update to.</div><div class="line">     * <span class="doctag">@return</span> true if the operation succeeds, false otherwise.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">compareAndSet</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> expectedValue, <span class="keyword">final</span> <span class="keyword">long</span> newValue)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> UNSAFE.compareAndSwapLong(<span class="keyword">this</span>, VALUE_OFFSET, expectedValue, newValue);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Atomically increment the sequence by one.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@return</span> The value after the increment</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">incrementAndGet</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> addAndGet(<span class="number">1L</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">     * Atomically add the supplied value.</div><div class="line">     *</div><div class="line">     * <span class="doctag">@param</span> increment The value to add to the sequence.</div><div class="line">     * <span class="doctag">@return</span> The value after the increment.</div><div class="line">     */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">addAndGet</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> increment)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">long</span> currentValue;</div><div class="line">        <span class="keyword">long</span> newValue;</div><div class="line"></div><div class="line">        <span class="keyword">do</span></div><div class="line">        &#123;</div><div class="line">            currentValue = get();</div><div class="line">            newValue = currentValue + increment;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">while</span> (!compareAndSet(currentValue, newValue));</div><div class="line"></div><div class="line">        <span class="keyword">return</span> newValue;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> Long.toString(get());</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个Sequence其实相当于AtomicLong，最大的区别在于Sequence解决了伪共享问题。另外Sequence#set相当于AtomicLong#lazySet。<br>致此，使用单生产者发布事件的流程就完成了。</p>
+<h3 id="3-3-多生产者发布事件"><a href="#3-3-多生产者发布事件" class="headerlink" title="3.3 多生产者发布事件"></a>3.3 多生产者发布事件</h3><p>如果使用的是多生产者，占坑则调用MultiProducerSequencer.next()。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> next(<span class="number">1</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">* <span class="doctag">@see</span> Sequencer#next(int)</div><div class="line">*/</div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">next</span><span class="params">(<span class="keyword">int</span> n)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (n &lt; <span class="number">1</span>)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"n must be &gt; 0"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">long</span> current;</div><div class="line">    <span class="keyword">long</span> next;</div><div class="line"></div><div class="line">    <span class="keyword">do</span></div><div class="line">    &#123;</div><div class="line">        current = cursor.get(); <span class="comment">// 当前游标值，初始化时是-1</span></div><div class="line">        next = current + n;</div><div class="line"></div><div class="line">        <span class="keyword">long</span> wrapPoint = next - bufferSize;</div><div class="line">        <span class="keyword">long</span> cachedGatingSequence = gatingSequenceCache.get();</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (wrapPoint &gt; cachedGatingSequence || cachedGatingSequence &gt; current)</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">long</span> gatingSequence = Util.getMinimumSequence(gatingSequences, current);</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (wrapPoint &gt; gatingSequence)</div><div class="line">            &#123;</div><div class="line">                waitStrategy.signalAllWhenBlocking();</div><div class="line">                LockSupport.parkNanos(<span class="number">1</span>); <span class="comment">// TODO, should we spin based on the wait strategy?</span></div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            gatingSequenceCache.set(gatingSequence);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (cursor.compareAndSet(current, next))</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> next;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以发现，多生产者模式占坑和放置数据的逻辑和单生产者模式区别不大。区别主要是最后调用publish发布坑位的逻辑。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// MultiProducerSequencer.java</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE = Util.getUnsafe();</div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> BASE = UNSAFE.arrayBaseOffset(<span class="keyword">int</span>[].class); <span class="comment">// 获取int[]数组类的第一个元素与该类起始位置的偏移。</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> SCALE = UNSAFE.arrayIndexScale(<span class="keyword">int</span>[].class); <span class="comment">// 每个元素需要占用的位置，也有可能返回0。BASE和SCALE都是为了操作availableBuffer</span></div><div class="line"></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> Sequence gatingSequenceCache = <span class="keyword">new</span> Sequence(Sequencer.INITIAL_CURSOR_VALUE);</div><div class="line"></div><div class="line"><span class="comment">// availableBuffer tracks the state of each ringbuffer slot</span></div><div class="line"><span class="comment">// see below for more details on the approach</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span>[] availableBuffer; <span class="comment">// 初始全是-1</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> indexMask;</div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> indexShift;</div><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123;</div><div class="line">    setAvailable(sequence);</div><div class="line">    waitStrategy.signalAllWhenBlocking(); <span class="comment">// 如果使用BlokingWaitStrategy，才会进行通知。否则不会操作</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">publish</span><span class="params">(<span class="keyword">long</span> lo, <span class="keyword">long</span> hi)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">long</span> l = lo; l &lt;= hi; l++)</div><div class="line">    &#123;</div><div class="line">        setAvailable(l);</div><div class="line">    &#125;</div><div class="line">    waitStrategy.signalAllWhenBlocking();</div><div class="line">&#125;</div><div class="line">/</div><div class="line">* availableBuffer设置可用标志</div><div class="line">* 主要原因是避免发布者线程之间共享一个序列对象。</div><div class="line">* 游标和最小门控序列的差值应该永远不大于RingBuffer的大小（防止生产者太快，覆盖未消费完的数据）</div><div class="line">*/</div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setAvailable</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123; <span class="comment">// calculateIndex 求模%， calculateAvailabilityFlag 求除/</span></div><div class="line">    setAvailableBufferValue(calculateIndex(sequence), calculateAvailabilityFlag(sequence));</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setAvailableBufferValue</span><span class="params">(<span class="keyword">int</span> index, <span class="keyword">int</span> flag)</span></span></div><div class="line">&#123;  <span class="comment">// 使用Unsafe更新属性，因为是直接操作内存，所以需要计算元素位置对应的内存位置bufferAddress</span></div><div class="line">    <span class="keyword">long</span> bufferAddress = (index * SCALE) + BASE;</div><div class="line">    <span class="comment">// availableBuffer是标志可用位置的int数组，初始全为-1。随着sequence不断上升，buffer中固定位置的flag（也就是sequence和bufferSize相除的商）会一直增大。</span></div><div class="line">    UNSAFE.putOrderedInt(availableBuffer, bufferAddress, flag);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">calculateAvailabilityFlag</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123; <span class="comment">// 求商 就是 sequence / bufferSize , bufferSize = 2^indexShift。</span></div><div class="line">    <span class="keyword">return</span> (<span class="keyword">int</span>) (sequence &gt;&gt;&gt; indexShift);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">int</span> <span class="title">calculateIndex</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></div><div class="line">&#123; <span class="comment">// 计算位置即求模，直接使用序号 与 掩码（2的平方-1，也就是一个全1的二进制表示）,相当于 sequence % (bufferSize), bufferSize = indexMask + 1</span></div><div class="line">    <span class="keyword">return</span> ((<span class="keyword">int</span>) sequence) &amp; indexMask;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>对比SingleProducerSequencer的publish，MultiProducerSequencer的publish没有设置cursor，而是将内部使用的availableBuffer数组对应位置进行设置。availableBuffer是一个记录RingBuffer槽位状态的数组，通过对序列值sequence取ringBuffer大小的模，获得槽位号，再通过与ringBuffer大小相除，获取序列值所在的圈数，进行设置。这里没有直接使用模运算和触发运算，而使用更高效的位与和右移操作。<br>其他的操作，MultiProducerSequencer和SingleProducerSequencer类似，就不再赘述了。</p>
+<h2 id="4-剖析SingleProducerSequencer设计"><a href="#4-剖析SingleProducerSequencer设计" class="headerlink" title="4 剖析SingleProducerSequencer设计"></a>4 剖析SingleProducerSequencer设计</h2><p>上面已经把Disruptor的主要发布事件流程过了一遍，好奇如你，必然觉得意犹未尽。如果你没有，那肯定还是我讲的有问题，不代表Disruptor本身的精彩。<br>接下来说一说SingleProducerSequencer的设计。从中我们可以看到Disruptor解决伪共享问题的实际代码。<br>SingleProducerSequencer继承了抽象类SingleProducerSequencerFields，SingleProducerSequencerFields又继承了抽象类SingleProducerSequencerPad。其中SingleProducerSequencerFields是实际放置有效实例变量的位置。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// SingleProducerSequencer.java</span></div><div class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">SingleProducerSequencerPad</span> <span class="keyword">extends</span> <span class="title">AbstractSequencer</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SingleProducerSequencerPad</span><span class="params">(<span class="keyword">int</span> bufferSize, WaitStrategy waitStrategy)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">super</span>(bufferSize, waitStrategy);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">SingleProducerSequencerFields</span> <span class="keyword">extends</span> <span class="title">SingleProducerSequencerPad</span></span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SingleProducerSequencerFields</span><span class="params">(<span class="keyword">int</span> bufferSize, WaitStrategy waitStrategy)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">super</span>(bufferSize, waitStrategy);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Set to -1 as sequence starting point</div><div class="line">    */</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> nextValue = Sequence.INITIAL_VALUE; <span class="comment">// 生产者申请的下一个序列值</span></div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> cachedValue = Sequence.INITIAL_VALUE; <span class="comment">// 缓存上一次比较的门控序列组和next的较小值（最慢消费者序列值）</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">* &lt;p&gt;Coordinator for claiming sequences for access to a data structure while tracking dependent &#123;<span class="doctag">@link</span> Sequence&#125;s.</div><div class="line">* Not safe for use from multiple threads as it does not implement any barriers.&lt;/p&gt;</div><div class="line">* &lt;p&gt;</div><div class="line">* &lt;p&gt;Note on &#123;<span class="doctag">@link</span> Sequencer#getCursor()&#125;:  With this sequencer the cursor value is updated after the call</div><div class="line">* to &#123;<span class="doctag">@link</span> Sequencer#publish(long)&#125; is made.</div><div class="line">*/</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">SingleProducerSequencer</span> <span class="keyword">extends</span> <span class="title">SingleProducerSequencerFields</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</div><div class="line">    <span class="comment">// ...省略</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以发现，在两个实例变量前后各有7个long型变量。为什么这样做呢？对CPU缓存有了解的同学一定知道的……对，就是为了解决伪共享问题。<br>CPU在加载内存到缓存行时，一个缓存行中最多只有这两个有效变量，最大限度地避免了因伪共享问题，导致缓存失效，而造成性能损失。<br>为了更清晰地阐述这个道理，我们尝试看一下SingleProducerSequencer实例的内存布局。<br>使用HSDB（HotSpot Debugger，可通过 java -cp .;”%JAVA_HOME%/lib/sa-jdi.jar” sun.jvm.hotspot.HSDB 启动）跟踪demo对应的已断点的HotSpot进程，从Object Histogram对象图中筛选出SingleProducerSequencer实例，并通过Inspector工具对SingleProducerSequencer实例进行查看。<br>本例中，0x00000000828026f8为com.lmax.disruptor.SingleProducerSequencer实例在JVM中的内存起始位置。以此内存地址通过mem命令查看后续的30个内存地址内容。为啥要30个呢？其实20个就够了，可以看到”Object Histogram”中SingleProducerSequencer实例的size是160字节，mem打印一行表示一字长，对应到我本机的64位机器即8字节，所以长度选择大于等于160/8=20就可以看到SingleProducerSequencer实例的内存布局全貌。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-da7008bab4e98b00.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="hsdb"></p>
+<p>左侧红框中的地址0x0000000082802750和0x0000000082802758分别对应右侧红框中的nextValue和cachedValue两个实例变量。而在它们前后，各有7个连续的long型整数0。CPU在加载连续内存到缓存时，以缓存行为单位。缓存行通常为64B，通过占位，可以让实际变量独享一个缓存行。从而解决了伪共享问题。<br>缓存行查看：linux可使用以下命令查看。<br><code>cat /sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size</code><br>windows可使用CPU-Z查看。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-2f066aa98d694bda.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="cpu-z"></p>
+<h2 id="附录：JAVA对象的内存布局相关知识"><a href="#附录：JAVA对象的内存布局相关知识" class="headerlink" title="附录：JAVA对象的内存布局相关知识"></a>附录：JAVA对象的内存布局相关知识</h2><p>最后再说点Java对象的内存布局，和本文主题关系不大，可以略过。<br><strong>HotSpot对象内存布局</strong>：<br>HotSpot中一个对象（非数组）的内存布局大概是这样的：对象头(Mark Word + klass pointer) + 实际数据 + 为了保持8字节对齐的填充。其中对象头的Mark Word和klass pointer长度各为一机器字(machine-word)，即32位机器对应32bit（4字节），64位机器对应64bit（8字节）。如64位JVM开启了指针压缩，klass pointer将压缩到4字节。<br><strong>查看是否开启了指针压缩</strong>：<br>jinfo -flag UseCompressedOops pid 返回-XX:+UseCompressedOops即为开启，或jinfo -flags pid 查看全部选项。<br>此例中返回了-XX:+UseCompressedOops，表示开启了指针压缩（jdk1.8默认开启）。此时普通类型指针将被压缩为4字节。<br>下面通过SingleProducerSequencer举一个实际的例子。<br><strong>SingleProducerSequencer属性</strong></p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-c5aea4ed591dac10.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>使用HSDB Inspector查看实例。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-739c258330b18bdf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><strong>查看对象内存内容</strong>：</p>
+<blockquote>
+<p>hsdb&gt; mem 0x00000000828026f8 20<br>0x00000000828026f8: 0x0000000000000009     // mark word  存储对象运行时数据，如哈希码、GC分代年龄、锁状态标志、线程持有锁、偏向线程ID、偏向时间戳<br>0x0000000082802700: 0x000000082000de38    // 高4位(82802704~82802707)：int bufferSize 8 ,低4位(82802700~8280273)：2000de38。由于开启了指针压缩，低4位表示klass pointer，由于使用的JDK1.8，klass metadata保存在Metadataspace中。<br>0x0000000082802708: 0x828028e082809e98    // 高4位：ref cursor，低4位： ref waitStrategy<br>0x0000000082802710: 0x000000008284b390     // ref gatingSequences ObjArray<br>0x0000000082802718: 0x0000000000000000     // 包括当前行的以下7行 SingleProducerSequencerPad中定义的p1~p7<br>0x0000000082802720: 0x0000000000000000<br>0x0000000082802728: 0x0000000000000000<br>0x0000000082802730: 0x0000000000000000<br>0x0000000082802738: 0x0000000000000000<br>0x0000000082802740: 0x0000000000000000<br>0x0000000082802748: 0x0000000000000000<br>0x0000000082802750: 0x0000000000000001       // nextValue 1<br>0x0000000082802758: 0xffffffffffffffff                // cachedValue -1<br>0x0000000082802760: 0x0000000000000000    // SingleProducerSequencer定义的p1~p7<br>0x0000000082802768: 0x0000000000000000<br>0x0000000082802770: 0x0000000000000000<br>0x0000000082802778: 0x0000000000000000<br>0x0000000082802780: 0x0000000000000000<br>0x0000000082802788: 0x0000000000000000<br>0x0000000082802790: 0x0000000000000000</p>
+</blockquote>
+<p><strong>计算此对象的Shallow Heap size 和 Retained Heap size</strong>：<br>可以发现此对象一共占用20<em>8=160B内存，此值即Shallow Heap size。也可以手工计算：mark_word[8] + klass_pointer[4] + 2 </em> ref[4] + ObjArray_ref[8] + 16 * long[8] + int[4] = 160B<br>而保留内存大小Retained Heap size = Shallow Heap size + （当前对象的引用对象排除GC Root引用对象）的Shallow Heap size。<br>这里涉及到的引用为：cursor 0x00000000828028e0 ，waitStrategy 0x0000000082809e98 ，gatingSequences 0x000000008284b390。</p>
+<p>分别使用revptrs命令查找反向引用，发现只有gatingSequences为此对象唯一引用，故计算gatingSequences(com.lmax.disruptor.Sequence[1] ) Shallow Heap size = 12 + 4 + 1 * 4 + 4 = 24B。这里由于开启了压缩指针，引用指针占用4B，此时占用20B，需要填充4B补满24B。故对象的Retained Heap size为160+24=184。</p>
+<blockquote>
+<p>hsdb&gt; mem 0x000000008284b390 3<br>0x000000008284b390: 0x0000000000000009<br>0x000000008284b398: 0x000000012000e08d<br>0x000000008284b3a0: 0x000000008284abc0</p>
+</blockquote>
+<p>数组对象的Shallow Heap size=引用对象头大小12字节+存储数组长度的空间大小4字节+数组的长度*数组中对象的Shallow Heap size+padding大小</p>
+<p>最后还有个问题，我们知道从Java8开始，Metaspace替代之前的PermGen存储元信息。使用Java7的HSDB是可以通过universe命令查看到PermGen信息的，而Java8就查不到Metaspace信息。</p>
+<blockquote>
+<p>Heap Parameters:<br>ParallelScavengeHeap [ PSYoungGen [<br>     eden = [0x00000000d6300000,0x00000000d66755d0,0x00000000d8300000] ,<br>     from =  [0x00000000d8300000,0x00000000d8300000,0x00000000d8800000] ,<br>     to =  [0x00000000d8800000,0x00000000d8800000,0x00000000d8d00000]  ]<br>PSOldGen [  [0x0000000082800000,0x00000000829d79c0,0x0000000084a00000]  ]  ]</p>
+</blockquote>
+<p>Disruptor生产者相关源码就分享到这，后续将对消费者一探究竟。</p>
+<hr>
+<p><strong>参考资料</strong>：</p>
+<ol>
+<li>Java对象内存布局（推荐，写的很棒）  <a href="http://www.jianshu.com/p/91e398d5d17c" target="_blank" rel="external">http://www.jianshu.com/p/91e398d5d17c</a></li>
+<li>JVM——深入分析对象的内存布局   <a href="http://www.cnblogs.com/zhengbin/p/6490953.html" target="_blank" rel="external">http://www.cnblogs.com/zhengbin/p/6490953.html</a></li>
+<li>借HSDB来探索HotSpot VM的运行时数据   <a href="http://rednaxelafx.iteye.com/blog/1847971" target="_blank" rel="external">http://rednaxelafx.iteye.com/blog/1847971</a></li>
+<li>markOop.hpp <a href="https://github.com/dmlloyd/openjdk/blob/jdk8u/jdk8u/hotspot/src/share/vm/oops/markOop.hpp" target="_blank" rel="external">https://github.com/dmlloyd/openjdk/blob/jdk8u/jdk8u/hotspot/src/share/vm/oops/markOop.hpp</a></li>
+<li>Shallow and retained sizes  <a href="http://toolkit.globus.org/toolkit/testing/tools/docs/help/sizes.html" target="_blank" rel="external">http://toolkit.globus.org/toolkit/testing/tools/docs/help/sizes.html</a></li>
+<li>AtomicLong.lazySet是如何工作的？  <a href="http://ifeve.com/how-does-atomiclong-lazyset-work/" target="_blank" rel="external">http://ifeve.com/how-does-atomiclong-lazyset-work/</a></li>
+<li>《深入理解Java虚拟机》2.3.2 对象的内存布局</li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/" rel="next" title="解读Disruptor系列--解读源码（1）之初始化">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列--解读源码（1）之初始化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/" rel="prev" title="探究SpringJMS+ActiveMQ消息阻塞之谜">
+                探究SpringJMS+ActiveMQ消息阻塞之谜 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-生产者线程"><span class="nav-number">1.</span> <span class="nav-text">1 生产者线程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-生产事件的整体逻辑"><span class="nav-number">2.</span> <span class="nav-text">2 生产事件的整体逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Disruptor的核心–Sequencer接口"><span class="nav-number">3.</span> <span class="nav-text">3 Disruptor的核心–Sequencer接口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-单生产者发布事件"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 单生产者发布事件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-插播Disruptor中的高效AtomicLong–Sequence"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 插播Disruptor中的高效AtomicLong–Sequence</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-多生产者发布事件"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 多生产者发布事件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-剖析SingleProducerSequencer设计"><span class="nav-number">4.</span> <span class="nav-text">4 剖析SingleProducerSequencer设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#附录：JAVA对象的内存布局相关知识"><span class="nav-number">5.</span> <span class="nav-text">附录：JAVA对象的内存布局相关知识</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/';
+          this.page.identifier = '2017/09/07/解读Disruptor系列-解读源码（2）之生产者/';
+          this.page.title = '解读Disruptor系列--解读源码（2）之生产者';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

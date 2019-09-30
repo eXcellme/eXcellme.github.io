@@ -1,0 +1,911 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Redis,Coding,Wireshark,SO_LINGER,RST," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="问题描述其他业务线的同学在测试环境发现应用程序一直不能获取redis连接，我帮忙看了下。首先看应用错误日志1234567891011121314151617Caused by: org.springframework.data.redis.RedisConnectionFailureException: Cannot get Jedis connection; nested exception i">
+<meta name="keywords" content="Redis,Coding,Wireshark,SO_LINGER,RST">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从Redis连接池获取连接失败的原因说起">
+<meta property="og:url" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="问题描述其他业务线的同学在测试环境发现应用程序一直不能获取redis连接，我帮忙看了下。首先看应用错误日志1234567891011121314151617Caused by: org.springframework.data.redis.RedisConnectionFailureException: Cannot get Jedis connection; nested exception i">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_1.png">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_2.png">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/linux_df.png">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_3.png">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_4.png">
+<meta property="og:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_5.png">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.369Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从Redis连接池获取连接失败的原因说起">
+<meta name="twitter:description" content="问题描述其他业务线的同学在测试环境发现应用程序一直不能获取redis连接，我帮忙看了下。首先看应用错误日志1234567891011121314151617Caused by: org.springframework.data.redis.RedisConnectionFailureException: Cannot get Jedis connection; nested exception i">
+<meta name="twitter:image" content="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/"/>
+
+
+
+
+
+  <title>从Redis连接池获取连接失败的原因说起 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">从Redis连接池获取连接失败的原因说起</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-05T14:07:14+08:00">
+                2017-07-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/07/05/Redis连接池获取连接失败原因调查一则/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/07/05/Redis连接池获取连接失败原因调查一则/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>其他业务线的同学在测试环境发现应用程序一直不能获取redis连接，我帮忙看了下。<br>首先看应用错误日志<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">Caused by: org.springframework.data.redis.RedisConnectionFailureException: Cannot get Jedis connection; nested exception is redis.clients.jedis.exceptions.JedisConnectionException: Could not get a resource from the pool</div><div class="line">    at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.fetchJedisConnector(JedisConnectionFactory.java:97)</div><div class="line">    at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.getConnection(JedisConnectionFactory.java:143)</div><div class="line">    at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.getConnection(JedisConnectionFactory.java:41)</div><div class="line">    at org.springframework.data.redis.core.RedisConnectionUtils.doGetConnection(RedisConnectionUtils.java:85)</div><div class="line">    at org.springframework.data.redis.core.RedisConnectionUtils.getConnection(RedisConnectionUtils.java:55)</div><div class="line">    at org.springframework.data.redis.core.RedisTemplate.execute(RedisTemplate.java:169)</div><div class="line">    at org.springframework.data.redis.core.RedisTemplate.execute(RedisTemplate.java:149)</div><div class="line">    ... 76 more</div><div class="line">Caused by: redis.clients.jedis.exceptions.JedisConnectionException: Could not get a resource from the pool</div><div class="line">    at redis.clients.util.Pool.getResource(Pool.java:22)</div><div class="line">    at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.fetchJedisConnector(JedisConnectionFactory.java:90)</div><div class="line">    ... 83 more</div><div class="line">Caused by: java.util.NoSuchElementException: Could not create a validated object, cause: ValidateObject failed</div><div class="line">    at org.apache.commons.pool.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:871)</div><div class="line">    at redis.clients.util.Pool.getResource(Pool.java:20)</div><div class="line">    ... 84 more</div></pre></td></tr></table></figure></p>
+<h1 id="问题调查"><a href="#问题调查" class="headerlink" title="问题调查"></a>问题调查</h1><h2 id="确定环境"><a href="#确定环境" class="headerlink" title="确定环境"></a>确定环境</h2><p>发现是使用spring-data-redis通过jedis连接的redis服务端。<br>这个系统的代码很久没动，已经忘记了。先看看使用的jar版本吧。<br>查看应用程序使用的相关jar：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">lsof -p 19377 | grep -E "jedis|pool|redis"</div></pre></td></tr></table></figure></p>
+<p>发现输出的jar包含：commons-pool-1.3.jar、spring-data-redis-1.1.1.RELEASE.jar、jedis-2.1.0.jar<br>翻了下<a href="https://github.com/apache/commons-pool/blob/POOL_1_3/src/java/org/apache/commons/pool/impl/GenericObjectPool.java#L871" target="_blank" rel="external">commons pool相关代码</a><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">    _factory.activateObject(latch.getPair().value);</div><div class="line">    <span class="keyword">if</span>(_testOnBorrow &amp;&amp;</div><div class="line">            !_factory.validateObject(latch.getPair().value)) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> Exception(<span class="string">"ValidateObject failed"</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">synchronized</span>(<span class="keyword">this</span>) &#123;</div><div class="line">        _numInternalProcessing--;</div><div class="line">        _numActive++;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> latch.getPair().value;</div><div class="line">&#125;</div><div class="line"><span class="keyword">catch</span> (Throwable e) &#123;</div><div class="line">    PoolUtils.checkRethrow(e);</div><div class="line">    <span class="comment">// object cannot be activated or is invalid</span></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        _factory.destroyObject(latch.getPair().value);</div><div class="line">    &#125; <span class="keyword">catch</span> (Throwable e2) &#123;</div><div class="line">        PoolUtils.checkRethrow(e2);</div><div class="line">        <span class="comment">// cannot destroy broken object</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</div><div class="line">        _numInternalProcessing--;</div><div class="line">        <span class="keyword">if</span> (!newlyCreated) &#123;</div><div class="line">            latch.reset();</div><div class="line">            _allocationQueue.add(<span class="number">0</span>, latch);</div><div class="line">        &#125;</div><div class="line">        allocate();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span>(newlyCreated) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NoSuchElementException(<span class="string">"Could not create a validated object, cause: "</span> + e.getMessage());</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">continue</span>; <span class="comment">// keep looping</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可见客户端应该是配置了testOnBorrow，在校验连接时失败了。</p>
+<p>java操作redis有多种客户端，项目使用spring-data-redis操作redis，在spring-data-redis中也有不同的客户端实现如jedis，lettuce等。根据错误日志推断使用的redis客户端实现为jedis。<br>查看<a href="https://github.com/spring-projects/spring-data-redis/blob/v1.1.1.RELEASE/src/main/java/org/springframework/data/redis/connection/jedis/JedisConnectionFactory.java" target="_blank" rel="external">JedisConnectionFactory源码</a><br>在<a href="https://github.com/xetorthio/jedis/blob/jedis-2.1.0/src/main/java/redis/clients/jedis/JedisPool.java" target="_blank" rel="external">JedisPool</a>中定义了校验对象的代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validateObject</span><span class="params">(<span class="keyword">final</span> Object obj)</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (obj <span class="keyword">instanceof</span> Jedis) &#123;</div><div class="line">        <span class="keyword">final</span> Jedis jedis = (Jedis) obj;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            <span class="keyword">return</span> jedis.isConnected() &amp;&amp; jedis.ping().equals(<span class="string">"PONG"</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="通过wireshark查看TCP包并确定问题原因"><a href="#通过wireshark查看TCP包并确定问题原因" class="headerlink" title="通过wireshark查看TCP包并确定问题原因"></a>通过wireshark查看TCP包并确定问题原因</h2><p>熟悉redis的同学都知道，redis客户端发送“PING”后服务端会返回一个“PONG“作为回应，一般会作为连接的检验方法。<br>既然校验报错，那抓包看看请求和响应吧！</p>
+<p>首先查看网卡编号<code>ip a</code><br>再使用tcpdump对eth1网卡的6379端口数据抓包。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">tcpdump -i eth1 port 6379 -w target.cap</div></pre></td></tr></table></figure></p>
+<p>最后使用wireshark对target.cap进行分析，可借助<a href="https://github.com/jzwinck/redis-wireshark" target="_blank" rel="external">wireshark的redis插件</a>进行分析。<br>根据应用错误日志打印的时间，查询到此时客户端（应用服务器）向服务端（redis服务器）发送了一个RST包。<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_1.png" alt="ws_1.png" title=""><br>感觉是有问题的。就往上查了下。<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_2.png" alt="ws_2.png" title=""><br>可以看到，箭头位置上方客户端发送了PING命令，箭头位置应该返回客户端一个PONG作为响应。而是返回了以下信息：</p>
+<blockquote>
+<p>MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.</p>
+</blockquote>
+<p>意思是，redis服务端配置了RDB快照持久化，但当前不能进行持久化。有可能修改数据集的命令都被禁用了。（但是通过看源码发现，除了涉及修改的命令，PING也在禁用之列，<a href="https://github.com/antirez/redis/blob/3.2.9/src/server.c" target="_blank" rel="external">redis-3.2.9 server.c</a>，而读取涉及的命令应该不会受到影响）<br>以下代码是redis-3.2.9 server.c中<code>in processCommand(client *c)</code>发生持久化异常后的处理代码<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* Don't accept write commands if there are problems persisting on disk</span></div><div class="line">     * and if this is a master instance. */</div><div class="line">    <span class="keyword">if</span> (((server.stop_writes_on_bgsave_err &amp;&amp;</div><div class="line">          server.saveparamslen &gt; <span class="number">0</span> &amp;&amp;</div><div class="line">          server.lastbgsave_status == C_ERR) ||</div><div class="line">          server.aof_last_write_status == C_ERR) &amp;&amp;</div><div class="line">        server.masterhost == <span class="literal">NULL</span> &amp;&amp;</div><div class="line">        (c-&gt;cmd-&gt;flags &amp; CMD_WRITE ||</div><div class="line">         c-&gt;cmd-&gt;proc == pingCommand))</div><div class="line">    &#123;</div><div class="line">        flagTransaction(c);</div><div class="line">        <span class="keyword">if</span> (server.aof_last_write_status == C_OK)</div><div class="line">            addReply(c, shared.bgsaveerr);</div><div class="line">        <span class="keyword">else</span></div><div class="line">            addReplySds(c,</div><div class="line">                sdscatprintf(sdsempty(),</div><div class="line">                <span class="string">"-MISCONF Errors writing to the AOF file: %s\r\n"</span>,</div><div class="line">                strerror(server.aof_last_write_errno)));</div><div class="line">        <span class="keyword">return</span> C_OK;</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>之后客户端发送QUIT命令退出，服务器返回OK响应退出成功。<br>那个返回的配置错误信息是说在持久化RDB时出现了问题。于是到redis服务器上看了下磁盘信息和redis的日志，果然，磁盘空间不足了。<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/linux_df.png" alt="linux_df.png" title=""></p>
+<p>到此，问题基本查明，是由于redis所在服务器磁盘不足导致，由于是测试服务器，也没有配置磁盘的监控。腾出空间后即可恢复。</p>
+<h1 id="对RST包的理解"><a href="#对RST包的理解" class="headerlink" title="对RST包的理解"></a>对RST包的理解</h1><p>但是我还有一个问题，那就是为什么会有一个RST包呢？如果没有那个RST包，其实问题还不好发现，虽然按照错误日志的时间，挨个查找Redis数据包的信息，能够查询出来，但是RST无疑从一开始就吸引了我的注意，让我能够更加快速的定位问题。</p>
+<h2 id="初识RST"><a href="#初识RST" class="headerlink" title="初识RST"></a>初识RST</h2><p>那现在问题来了，为什么会有RST包呢？<br>首先了解一下RST。（可参考<a href="http://www.52im.net/topic-tcpipvol1.html" target="_blank" rel="external">TCP/IP详解 卷1</a> ， <a href="http://docs.52im.net/extend/docs/book/tcpip/vol1/18/" target="_blank" rel="external">18.7 复位报文段</a>)<br>归纳起来，当以下任一情况发生时，会产生RST包：</p>
+<ul>
+<li>到不存在的端口的连接请求</li>
+<li>异常终止一个连接</li>
+<li>检测半打开连接</li>
+</ul>
+<h2 id="jedis与redis的关闭机制"><a href="#jedis与redis的关闭机制" class="headerlink" title="jedis与redis的关闭机制"></a>jedis与redis的关闭机制</h2><p>观察RST之前的几个包<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_3.png" alt="ws_3.png" title=""><br>使用wireshark的专家信息查看多个RST包，发现RST之前都会有QUIT,OK的交互。那看来应该是框架层面的问题。<br>再翻看上面GenericObjectPool的相关代码，在borrowObject时如果发生异常，会调用destroyObject()方法，这个destroyObject是延迟到子类实现的，也就是上面说到的JedisPool。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">destroyObject</span><span class="params">(<span class="keyword">final</span> Object obj)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    <span class="keyword">if</span> (obj <span class="keyword">instanceof</span> Jedis) &#123;</div><div class="line">        <span class="keyword">final</span> Jedis jedis = (Jedis) obj;</div><div class="line">        <span class="keyword">if</span> (jedis.isConnected()) &#123;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    jedis.quit();</div><div class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                &#125;</div><div class="line">                jedis.disconnect();</div><div class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line"></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最终调用redis.clients.jedis.Connection的disconnect，关闭输入输出流。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">disconnect</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (isConnected()) &#123;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            inputStream.close();</div><div class="line">            outputStream.close();</div><div class="line">            <span class="keyword">if</span> (!socket.isClosed()) &#123;</div><div class="line">                socket.close();</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> JedisConnectionException(ex);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这也就解释了为什么会出现RST包：<br>客户端请求QUIT，服务端返回OK。（此时客户端在接收完quit返回后，调用了disconnect方法，导致连接断开）紧接着服务端发起TCP挥手，发送FIN包到之前交互的客户端51311端口，但调用完disconnect的客户端已经断开了和服务端的连接。客户端只能通过发送RST，通知服务端“你发送了一个到不存在的端口的关闭请求”。</p>
+<p>翻看新版的jedis代码，除了将之前JedisPool中实现的代码挪到了JedisFactory中实现，大致逻辑依然没有改变()<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 2.10 JedisFactory</span></div><div class="line"><span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">destroyObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    <span class="keyword">final</span> BinaryJedis jedis = pooledJedis.getObject();</div><div class="line">    <span class="keyword">if</span> (jedis.isConnected()) &#123;</div><div class="line">      <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">          jedis.quit();</div><div class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">        &#125;</div><div class="line">        jedis.disconnect();</div><div class="line">      &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line"></div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validateObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> </span>&#123;</div><div class="line">  <span class="keyword">final</span> BinaryJedis jedis = pooledJedis.getObject();</div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    HostAndPort hostAndPort = <span class="keyword">this</span>.hostAndPort.get();</div><div class="line"></div><div class="line">    String connectionHost = jedis.getClient().getHost();</div><div class="line">    <span class="keyword">int</span> connectionPort = jedis.getClient().getPort();</div><div class="line"></div><div class="line">    <span class="keyword">return</span> hostAndPort.getHost().equals(connectionHost)</div><div class="line">        &amp;&amp; hostAndPort.getPort() == connectionPort &amp;&amp; jedis.isConnected()</div><div class="line">        &amp;&amp; jedis.ping().equals(<span class="string">"PONG"</span>);</div><div class="line">  &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>而disconnect最终调用的Connection有变化。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">disconnect</span><span class="params">()</span> </span>&#123;</div><div class="line">  <span class="keyword">if</span> (isConnected()) &#123;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      outputStream.flush();</div><div class="line">      socket.close();</div><div class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">      broken = <span class="keyword">true</span>;</div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> JedisConnectionException(ex);</div><div class="line">    &#125; <span class="keyword">finally</span> &#123;</div><div class="line">      IOUtils.closeQuietly(socket);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>由之前的inpusStream.close()和outputStream.close()改成了outputStream.flush()。原因是jedis自定义了带缓冲的RedisOutputStream，在socket.close前要确保缓冲内容写到流中。<br>客户端使用disconnect确实能够快速释放资源，在调用disconnect时关闭了客户端端口，回收了文件句柄资源。<br>试想如果在quit后，服务端就已经释放了文件句柄，关闭了socket连接，而客户端不调用disconnect释放资源，就会一直占用资源，在进程结束才会释放。<br>下图也进行了验证。第一次注释掉disconnect中关闭socket的代码，程序sleep10秒后退出，可以看到<strong>直到进程退出时，客户端的连接才被关闭</strong>。而第二次是恢复注释掉的代码，客户端在quit后马上就关闭了连接释放了资源。<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_4.png" alt="ws_4.png" title=""></p>
+<h2 id="redis连接开启和关闭时的系统调用"><a href="#redis连接开启和关闭时的系统调用" class="headerlink" title="redis连接开启和关闭时的系统调用"></a>redis连接开启和关闭时的系统调用</h2><p>这个问题困扰了我一天，到底怎么产生的RST包？不管是客户端还是服务端，调用close后，都应该进行正常的四次握手吧？<br>我反复看了redis服务端关闭客户端连接的源码(<a href="https://github.com/antirez/redis/blob/3.2.9/src/networking.c#L746" target="_blank" rel="external">redis 3.2.9 networking.c#unlinkClient</a>)。也只是调用了系统调用<code>close(fd)</code>，甚至为了避免干扰还新建了一个redis实例，使用<code>strace -f -p $pid  -tt -T</code>跟踪关闭附近的系统调用<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div></pre></td><td class="code"><pre><div class="line">[pid 25442] 10:29:42.299132 epoll_wait(3, &#123;&#123;EPOLLIN, &#123;u32=4, u64=4&#125;&#125;&#125;, 11024, 100) = 1 &lt;0.004041&gt;</div><div class="line">[pid 25442] 10:29:42.303248 accept(4, &#123;sa_family=AF_INET, sin_port=htons(52294), sin_addr=inet_addr(&quot;192.168.3.45&quot;)&#125;, [16]) = 5 &lt;0.000025&gt;</div><div class="line">[pid 25442] 10:29:42.303356 fcntl(5, F_GETFL) = 0x2 (flags O_RDWR) &lt;0.000014&gt;</div><div class="line">[pid 25442] 10:29:42.303417 fcntl(5, F_SETFL, O_RDWR|O_NONBLOCK) = 0 &lt;0.000010&gt;</div><div class="line">[pid 25442] 10:29:42.303456 setsockopt(5, SOL_TCP, TCP_NODELAY, [1], 4) = 0 &lt;0.000012&gt;</div><div class="line">[pid 25442] 10:29:42.303499 epoll_ctl(3, EPOLL_CTL_ADD, 5, &#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000011&gt;</div><div class="line">[pid 25442] 10:29:42.303544 epoll_wait(3, &#123;&#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 96) = 1 &lt;0.073370&gt;</div><div class="line">[pid 25442] 10:29:42.376968 read(5, &quot;*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n&quot;, 16384) = 31 &lt;0.000014&gt;</div><div class="line">[pid 25442] 10:29:42.377071 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN|EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000013&gt;</div><div class="line">[pid 25442] 10:29:42.377144 epoll_wait(3, &#123;&#123;EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 22) = 1 &lt;0.000017&gt;</div><div class="line">[pid 25442] 10:29:42.377210 write(5, &quot;+OK\r\n&quot;, 5) = 5 &lt;0.000034&gt;</div><div class="line">[pid 25442] 10:29:42.377304 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000025&gt;</div><div class="line">[pid 25442] 10:29:42.377377 epoll_wait(3, &#123;&#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 22) = 1 &lt;0.007943&gt;</div><div class="line">[pid 25442] 10:29:42.385376 read(5, &quot;*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n&quot;, 16384) = 22 &lt;0.000013&gt;</div><div class="line">[pid 25442] 10:29:42.385432 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN|EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000011&gt;</div><div class="line">[pid 25442] 10:29:42.385477 epoll_wait(3, &#123;&#123;EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 14) = 1 &lt;0.000010&gt;</div><div class="line">[pid 25442] 10:29:42.385518 write(5, &quot;$3\r\nbar\r\n&quot;, 9) = 9 &lt;0.000019&gt;</div><div class="line">[pid 25442] 10:29:42.385567 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000011&gt;</div><div class="line">[pid 25442] 10:29:42.385617 epoll_wait(3, &#123;&#125;, 11024, 14) = 0 &lt;0.014075&gt;</div><div class="line">[pid 25442] 10:29:42.399742 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100126&gt;</div><div class="line">[pid 25442] 10:29:42.499930 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100126&gt;</div><div class="line">[pid 25442] 10:29:42.600115 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100071&gt;</div><div class="line">[pid 25442] 10:29:42.700276 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100131&gt;</div><div class="line">[pid 25442] 10:29:42.800482 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100129&gt;</div><div class="line">[pid 25442] 10:29:42.900687 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100141&gt;</div><div class="line">[pid 25442] 10:29:43.000895 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100132&gt;</div><div class="line">[pid 25442] 10:29:43.101095 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100131&gt;</div><div class="line">[pid 25442] 10:29:43.201305 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100134&gt;</div><div class="line">[pid 25442] 10:29:43.301521 epoll_wait(3, &#123;&#125;, 11024, 100) = 0 &lt;0.100136&gt;</div><div class="line">[pid 25442] 10:29:43.401725 epoll_wait(3, &#123;&#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 100) = 1 &lt;0.003552&gt;</div><div class="line">[pid 25442] 10:29:43.405350 read(5, &quot;*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n&quot;, 16384) = 22 &lt;0.000016&gt;</div><div class="line">[pid 25442] 10:29:43.405425 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN|EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000011&gt;</div><div class="line">[pid 25442] 10:29:43.405477 epoll_wait(3, &#123;&#123;EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 96) = 1 &lt;0.000014&gt;</div><div class="line">[pid 25442] 10:29:43.405531 write(5, &quot;$3\r\nbar\r\n&quot;, 9) = 9 &lt;0.000022&gt;</div><div class="line">[pid 25442] 10:29:43.405601 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000011&gt;</div><div class="line">[pid 25442] 10:29:43.405660 epoll_wait(3, &#123;&#125;, 11024, 96) = 0 &lt;0.096129&gt;</div><div class="line">[pid 25442] 10:29:43.501877 epoll_wait(3, &#123;&#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 100) = 1 &lt;0.003474&gt;</div><div class="line">[pid 25442] 10:29:43.505429 read(5, &quot;*1\r\n$4\r\nQUIT\r\n&quot;, 16384) = 14 &lt;0.000018&gt;</div><div class="line">[pid 25442] 10:29:43.505514 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN|EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000015&gt;</div><div class="line">[pid 25442] 10:29:43.505578 epoll_wait(3, &#123;&#123;EPOLLOUT, &#123;u32=5, u64=5&#125;&#125;&#125;, 11024, 96) = 1 &lt;0.000012&gt;</div><div class="line">[pid 25442] 10:29:43.505623 write(5, &quot;+OK\r\n&quot;, 5) = 5 &lt;0.000028&gt;</div><div class="line">[pid 25442] 10:29:43.505693 epoll_ctl(3, EPOLL_CTL_MOD, 5, &#123;EPOLLIN, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000016&gt;</div><div class="line">[pid 25442] 10:29:43.505764 epoll_ctl(3, EPOLL_CTL_DEL, 5, &#123;0, &#123;u32=5, u64=5&#125;&#125;) = 0 &lt;0.000016&gt;</div><div class="line">[pid 25442] 10:29:43.505830 close(5)    = 0 &lt;0.000111&gt;</div><div class="line">[pid 25442] 10:29:43.505992 epoll_wait(3, &#123;&#125;, 11024, 96) = 0 &lt;0.096134&gt;</div></pre></td></tr></table></figure></p>
+<p>java客户端junit测试代码(根据jedis测试用例JedisPoolTest#checkConnections修改)：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">JedisPool pool = <span class="keyword">new</span> JedisPool(<span class="keyword">new</span> JedisPoolConfig(), hnp.getHost(), hnp.getPort(), <span class="number">2000</span>);</div><div class="line">   Jedis jedis = pool.getResource();</div><div class="line">   jedis.set(<span class="string">"foo"</span>, <span class="string">"bar"</span>);</div><div class="line">   assertEquals(<span class="string">"bar"</span>, jedis.get(<span class="string">"foo"</span>));</div><div class="line">   pool.returnResource(jedis);</div><div class="line"></div><div class="line">   <span class="keyword">try</span> &#123;</div><div class="line">     Thread.sleep(<span class="number">1</span>*<span class="number">1000</span>);</div><div class="line">   &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">     e.printStackTrace();</div><div class="line">   &#125;</div><div class="line">   System.out.println(<span class="string">"hello"</span>);</div><div class="line">   jedis.get(<span class="string">"foo"</span>);</div><div class="line">   pool.destroy();</div><div class="line">   assertTrue(pool.isClosed());</div></pre></td></tr></table></figure></p>
+<p>观察服务端系统调用，</p>
+<blockquote>
+<p>setsockopt(5, SOL_TCP, TCP_NODELAY, [1], 4) = 0<br>…<br>close(5)    = 0</p>
+</blockquote>
+<p>在socket连接时只设置了<code>TCP_NODELAY</code>，禁用了Nagle算法。</p>
+<h2 id="jedis客户端的socket设置"><a href="#jedis客户端的socket设置" class="headerlink" title="jedis客户端的socket设置"></a>jedis客户端的socket设置</h2><p>正在无解之际，突然想到是不是redis客户端设置了一些参数呢？<br>终于，在jedis控制连接的<code>redis.clients.jedisConnection</code>类中，找到了连接时对socket的设置：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">connect</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (!isConnected()) &#123;</div><div class="line">      <span class="keyword">try</span> &#123;</div><div class="line">        socket = <span class="keyword">new</span> Socket();</div><div class="line">        <span class="comment">// -&gt;@wjw_add</span></div><div class="line">        socket.setReuseAddress(<span class="keyword">true</span>);</div><div class="line">        socket.setKeepAlive(<span class="keyword">true</span>); <span class="comment">// Will monitor the TCP connection is</span></div><div class="line">        <span class="comment">// valid</span></div><div class="line">        socket.setTcpNoDelay(<span class="keyword">true</span>); <span class="comment">// Socket buffer Whetherclosed, to</span></div><div class="line">        <span class="comment">// ensure timely delivery of data</span></div><div class="line">        socket.setSoLinger(<span class="keyword">true</span>, <span class="number">0</span>); <span class="comment">// Control calls close () method,</span></div><div class="line">        <span class="comment">// the underlying socket is closed</span></div><div class="line">        <span class="comment">// immediately</span></div><div class="line">        <span class="comment">// &lt;-@wjw_add</span></div><div class="line"></div><div class="line">        socket.connect(<span class="keyword">new</span> InetSocketAddress(host, port), connectionTimeout);</div><div class="line">        socket.setSoTimeout(soTimeout);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (ssl) &#123;</div><div class="line">          <span class="keyword">if</span> (<span class="keyword">null</span> == sslSocketFactory) &#123;</div><div class="line">            sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();</div><div class="line">          &#125;</div><div class="line">          socket = (SSLSocket) sslSocketFactory.createSocket(socket, host, port, <span class="keyword">true</span>);</div><div class="line">          <span class="keyword">if</span> (<span class="keyword">null</span> != sslParameters) &#123;</div><div class="line">            ((SSLSocket) socket).setSSLParameters(sslParameters);</div><div class="line">          &#125;</div><div class="line">          <span class="keyword">if</span> ((<span class="keyword">null</span> != hostnameVerifier) &amp;&amp;</div><div class="line">              (!hostnameVerifier.verify(host, ((SSLSocket) socket).getSession()))) &#123;</div><div class="line">            String message = String.format(</div><div class="line">                <span class="string">"The connection to '%s' failed ssl/tls hostname verification."</span>, host);</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> JedisConnectionException(message);</div><div class="line">          &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        outputStream = <span class="keyword">new</span> RedisOutputStream(socket.getOutputStream());</div><div class="line">        inputStream = <span class="keyword">new</span> RedisInputStream(socket.getInputStream());</div><div class="line">      &#125; <span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">        broken = <span class="keyword">true</span>;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> JedisConnectionException(<span class="string">"Failed connecting to host "</span> </div><div class="line">            + host + <span class="string">":"</span> + port, ex);</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>这个<code>socket.setSoLinger(true, 0);</code>引起了我的注意。<br>根据<a href="https://tools.ietf.org/html/rfc6458#section-8.1.4" target="_blank" rel="external">SCTP rfc SO_LINGER</a>的解释</p>
+<blockquote>
+<p>If the l_linger value is set to 0, calling close() is the same as the ABORT primitive.</p>
+</blockquote>
+<p>继续看SCTP_ABORT:</p>
+<blockquote>
+<p>SCTP_ABORT:  Setting this flag causes the specified association<br>            to abort by sending an ABORT message to the peer.  The ABORT<br>            chunk will contain an error cause of ‘User Initiated Abort’<br>            with cause code 12.  The cause-specific information of this<br>            error cause is provided in msg_iov.</p>
+</blockquote>
+<p>不太明白，看下TCP中对Abort的解释吧<br><a href="https://tools.ietf.org/html/rfc793" target="_blank" rel="external">TCP rfc</a>对Abort的解释：</p>
+<blockquote>
+<p>This command causes all pending SENDs and RECEIVES to be<br>        aborted, the TCB to be removed, and a special RESET message to<br>        be sent to the TCP on the other side of the connection.<br>        Depending on the implementation, users may receive abort<br>        indications for each outstanding SEND or RECEIVE, or may simply<br>        receive an ABORT-acknowledgment.<br>注：TCB是一个抽象的控制块(Transmission Control Block)</p>
+</blockquote>
+<h2 id="Socket选项SO-LINGER用于强制中断"><a href="#Socket选项SO-LINGER用于强制中断" class="headerlink" title="Socket选项SO_LINGER用于强制中断"></a>Socket选项SO_LINGER用于强制中断</h2><p>到此才算明白，<strong>由于jedis客户端在连接时，设置了<code>socket.setSoLinger(true, 0);</code>，这样在关闭连接时就等同与TCP的Abort，也就是忽略所有正在发送和接收的数据，直接向对方发送一个RESET消息</strong>。这也是为什么jedis要在socket.close()前flush缓冲，以确保在途数据不会丢失。<br>我去掉了客户端对SO_LINGER的设置，终于又看到了正常的TCP挥手。<br><img src="/2017/07/05/Redis连接池获取连接失败原因调查一则/ws_5.png" alt="ws_5.png" title=""></p>
+<p>还想深入的同学，可以阅读linux源码<a href="https://github.com/torvalds/linux/blob/5518b69b76680a4f2df96b1deca260059db0c2de/net/ipv4/tcp.c" target="_blank" rel="external">net/ipv4/tcp.c</a>。我大概看了下，代码逻辑很明确（linux内核版本有区别）如果设置了SO_LINGER，在close时，会直接调用tcp_disconnect发送RST数据包，而不再做常规的四次挥手流程。虽然我觉得这样做不太优雅，更优雅的做法可能是<code>socket.setSoLinger(true, timeout)</code>设置一个超时阀值。<br>在这个<a href="https://github.com/xetorthio/jedis/issues/182" target="_blank" rel="external">github jedis issue Improving socket performance</a>中描述了加入以下四项设置用于提升性能。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">socket.setReuseAddress(<span class="keyword">true</span>);</div><div class="line">socket.setKeepAlive(<span class="keyword">true</span>);</div><div class="line">socket.setTcpNoDelay(<span class="keyword">true</span>);</div><div class="line">socket.setSoLinger(<span class="keyword">true</span>,<span class="number">0</span>);</div></pre></td></tr></table></figure></p>
+<p>在issue下加了个comment询问了下，有消息了再更新吧。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>此次应用程序中Jedis连接池不能获取redis连接的问题，原因是redis服务器磁盘空间满，导致不能保存快照(rdb snapshot)。应用程序中在testOnBorrow为true的情况下，使用redis<code>PING PONG</code>命令测试redis连接是否有效时，收到了<code>MISCONF Redis is configured to save RDB snapshots</code>的响应，而非正常的<code>PONG</code>。这就导致jedis判断连接无效，强制断开了连接。<br>之后对TCP中RST flag做了浅尝辄止的分析。当设置了<code>socket.setSoLinger(true, 0)</code>后，关闭此socket将清空数据并向对方发送RST消息。<br>可以深入的地方还有不少，自己关于网络编程的知识也有待加强。准备补充下相关知识，再结合一些优秀的开源项目如redis、nginx深入了解下。</p>
+<hr>
+<p><strong>参考</strong></p>
+<ol>
+<li>Jedis源码 <a href="https://github.com/xetorthio/jedis" target="_blank" rel="external">https://github.com/xetorthio/jedis</a></li>
+<li>Commons-pool源码 <a href="https://github.com/apache/commons-pool" target="_blank" rel="external">https://github.com/apache/commons-pool</a></li>
+<li>Spring-data-redis源码 <a href="https://github.com/spring-projects/spring-data-redis" target="_blank" rel="external">https://github.com/spring-projects/spring-data-redis</a></li>
+<li>redis-wireshark源码 <a href="https://github.com/jzwinck/redis-wireshark" target="_blank" rel="external">https://github.com/jzwinck/redis-wireshark</a></li>
+<li>Redis源码 <a href="https://github.com/antirez/redis" target="_blank" rel="external">https://github.com/antirez/redis</a></li>
+<li>TCP/IP详解在线电子书 <a href="http://www.52im.net/topic-tcpipvol1.html" target="_blank" rel="external">http://www.52im.net/topic-tcpipvol1.html</a></li>
+<li>SCTP rfc - <a href="https://tools.ietf.org/html/rfc6458" target="_blank" rel="external">https://tools.ietf.org/html/rfc6458</a></li>
+<li>TCP rfc - <a href="https://tools.ietf.org/html/rfc793" target="_blank" rel="external">https://tools.ietf.org/html/rfc793</a></li>
+<li><a href="http://www.codeweblog.com/%E5%87%A0%E7%A7%8Dtcp%E8%BF%9E%E6%8E%A5%E4%B8%AD%E5%87%BA%E7%8E%B0rst%E7%9A%84%E6%83%85%E5%86%B5/" target="_blank" rel="external">几种TCP连接中出现RST的情况</a></li>
+<li><a href="https://www.ibm.com/support/knowledgecenter/en/ssw_i5_54/apis/ssocko.htm" target="_blank" rel="external">setsockopt()–Set Socket Options</a></li>
+<li><a href="https://stackoverflow.com/questions/1593946/what-is-af-inet-and-why-do-i-need-it" target="_blank" rel="external">StackOverflow What is AF_INET, and why do I need it?</a></li>
+<li>Socket选项系列之SO_LINGER(《深入剖析Nginx》作者) - <a href="http://www.lenky.info/archives/2013/02/2220" target="_blank" rel="external">http://www.lenky.info/archives/2013/02/2220</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+            <a href="/tags/Coding/" rel="tag"># Coding</a>
+          
+            <a href="/tags/Wireshark/" rel="tag"># Wireshark</a>
+          
+            <a href="/tags/SO-LINGER/" rel="tag"># SO_LINGER</a>
+          
+            <a href="/tags/RST/" rel="tag"># RST</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/07/03/《软技能》读书笔记/" rel="next" title="《软技能》读书笔记">
+                <i class="fa fa-chevron-left"></i> 《软技能》读书笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/21/Python科学计算库常用API入门/" rel="prev" title="Python科学计算库常用API入门">
+                Python科学计算库常用API入门 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#问题描述"><span class="nav-number">1.</span> <span class="nav-text">问题描述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#问题调查"><span class="nav-number">2.</span> <span class="nav-text">问题调查</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#确定环境"><span class="nav-number">2.1.</span> <span class="nav-text">确定环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通过wireshark查看TCP包并确定问题原因"><span class="nav-number">2.2.</span> <span class="nav-text">通过wireshark查看TCP包并确定问题原因</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#对RST包的理解"><span class="nav-number">3.</span> <span class="nav-text">对RST包的理解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#初识RST"><span class="nav-number">3.1.</span> <span class="nav-text">初识RST</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#jedis与redis的关闭机制"><span class="nav-number">3.2.</span> <span class="nav-text">jedis与redis的关闭机制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis连接开启和关闭时的系统调用"><span class="nav-number">3.3.</span> <span class="nav-text">redis连接开启和关闭时的系统调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#jedis客户端的socket设置"><span class="nav-number">3.4.</span> <span class="nav-text">jedis客户端的socket设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Socket选项SO-LINGER用于强制中断"><span class="nav-number">3.5.</span> <span class="nav-text">Socket选项SO_LINGER用于强制中断</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/07/05/Redis连接池获取连接失败原因调查一则/';
+          this.page.identifier = '2017/07/05/Redis连接池获取连接失败原因调查一则/';
+          this.page.title = '从Redis连接池获取连接失败的原因说起';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

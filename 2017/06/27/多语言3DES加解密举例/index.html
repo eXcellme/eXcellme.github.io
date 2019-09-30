@@ -1,0 +1,869 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="3DES,crypto," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="工作中经常涉及和不同编程语言使用3DES加解密的对接问题，很多语言对于同一种加密算法的细节处理还是有些出入的，典型的如加密模式、填充方法。 3DES加解密简介DES使用分块加密，加密密钥为56位，块大小为64位。由于56位版本的DES加密非常容易破解（一般机器一天以内），就有了和DES兼容性较好的3DES算法。 ##原理3DES加密算法表示为C=EncryptK3(DecryptK2(Encryp">
+<meta name="keywords" content="3DES,crypto">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多语言3DES加解密举例">
+<meta property="og:url" content="http://coderjerry.com/2017/06/27/多语言3DES加解密举例/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="工作中经常涉及和不同编程语言使用3DES加解密的对接问题，很多语言对于同一种加密算法的细节处理还是有些出入的，典型的如加密模式、填充方法。 3DES加解密简介DES使用分块加密，加密密钥为56位，块大小为64位。由于56位版本的DES加密非常容易破解（一般机器一天以内），就有了和DES兼容性较好的3DES算法。 ##原理3DES加密算法表示为C=EncryptK3(DecryptK2(Encryp">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.381Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="多语言3DES加解密举例">
+<meta name="twitter:description" content="工作中经常涉及和不同编程语言使用3DES加解密的对接问题，很多语言对于同一种加密算法的细节处理还是有些出入的，典型的如加密模式、填充方法。 3DES加解密简介DES使用分块加密，加密密钥为56位，块大小为64位。由于56位版本的DES加密非常容易破解（一般机器一天以内），就有了和DES兼容性较好的3DES算法。 ##原理3DES加密算法表示为C=EncryptK3(DecryptK2(Encryp">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/06/27/多语言3DES加解密举例/"/>
+
+
+
+
+
+  <title>多语言3DES加解密举例 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/06/27/多语言3DES加解密举例/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">多语言3DES加解密举例</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-27T11:19:58+08:00">
+                2017-06-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/06/27/多语言3DES加解密举例/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/06/27/多语言3DES加解密举例/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>工作中经常涉及和不同编程语言使用3DES加解密的对接问题，很多语言对于同一种加密算法的细节处理还是有些出入的，典型的如加密模式、填充方法。</p>
+<h1 id="3DES加解密简介"><a href="#3DES加解密简介" class="headerlink" title="3DES加解密简介"></a>3DES加解密简介</h1><p>DES使用分块加密，加密密钥为56位，块大小为64位。由于56位版本的DES加密非常容易破解（一般机器一天以内），就有了和DES兼容性较好的3DES算法。</p>
+<p>##原理<br>3DES加密算法表示为<code>C=EncryptK3(DecryptK2(EncryptK1(message)</code>，如果K1、K2、K3为密钥，如果各不相同，则相当于加密密钥长度为112（由于<a href="https://zh.wikipedia.org/wiki/%E4%B8%AD%E9%80%94%E7%9B%B8%E9%81%87%E6%94%BB%E6%93%8A" target="_blank" rel="external">中途相遇攻击</a>）；解密算法表示为<code>message=DecryptK1((EncryptK2(DecryptK3(C)))</code></p>
+<p>以加密算法举例：</p>
+<ul>
+<li>使用了3次DES算法，有3个密钥</li>
+<li>加密时第一个密钥K1用来加密消息(P)，输出C1密文</li>
+<li>第二个密钥K2用来解密C1，输出C2密文</li>
+<li>第三个密钥K3用来加密C2，输出C3密文</li>
+</ul>
+<h2 id="分组密码工作模式"><a href="#分组密码工作模式" class="headerlink" title="分组密码工作模式"></a>分组密码工作模式</h2><blockquote>
+<p>分组密码的工作模式允许使用同一个分组密码密钥对多于一块的数据进行加密，并保证其安全性。分组密码自身只能加密长度等于密码分组长度的单块数据，若要加密变长数据，则数据必须先被划分为一些单独的密码块。通常而言，最后一块数据也需要使用合适填充方式将数据扩展到匹配密码块大小的长度。一种工作模式描述了加密每一数据块的过程，并常常使用基于一个通常称为初始化向量的附加输入值以进行随机化，以保证安全。</p>
+</blockquote>
+<p>对于分组密码工作模式的介绍可参考<a href="https://zh.wikipedia.org/wiki/%E5%88%86%E7%BB%84%E5%AF%86%E7%A0%81%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F#.E5.AF.86.E7.A0.81.E5.9D.97.E9.93.BE.E6.8E.A5.EF.BC.88CBC.EF.BC.89" target="_blank" rel="external">wiki</a></p>
+<p>常见的工作模式包括ECB，CBC，OFB和CFB等。</p>
+<h2 id="分组密码初始化向量（IV）"><a href="#分组密码初始化向量（IV）" class="headerlink" title="分组密码初始化向量（IV）"></a>分组密码初始化向量（IV）</h2><p>用于将加密随机化的一个位块，由此即使同样的明文被多次加密也会产生不同的密文，避免了较慢的重新产生密钥的过程。</p>
+<h2 id="分组密码填充"><a href="#分组密码填充" class="headerlink" title="分组密码填充"></a>分组密码填充</h2><p>块密码只能对确定长度的数据块进行处理，而消息的长度通常是可变的。因此部分模式（即ECB和CBC）需要最后一块在加密前进行<a href="https://zh.wikipedia.org/wiki/%E5%A1%AB%E5%85%85_(%E5%AF%86%E7%A0%81%E5%AD%A6" target="_blank" rel="external">填充</a>)。</p>
+<h2 id="加密后字节转文本"><a href="#加密后字节转文本" class="headerlink" title="加密后字节转文本"></a>加密后字节转文本</h2><p>对消息加密后通常会得到字节数组，在传输时一般会使用BASE64或HEX等进行编码。</p>
+<h1 id="多语言举例"><a href="#多语言举例" class="headerlink" title="多语言举例"></a>多语言举例</h1><p>统一起见，工作模式选择ECB，填充模式选择PKCS5Padding或使用8-byte块大小的PKCS7Padding（两种填充模式差别可参考<a href="https://crypto.stackexchange.com/questions/9043/what-is-the-difference-between-pkcs5-padding-and-pkcs7-padding" target="_blank" rel="external">StackExchange</a>），使用base64将加密后字节转换为文本密文。</p>
+<p>大家在使用时，一定记得要明确工作模式(mode of operation)和填充模式(padding)，因为<em>不同语言（甚至同一种语言不同版本）中对于工作模式和填充模式的实现是可以自由选择的</em>。</p>
+<h2 id="Java"><a href="#Java" class="headerlink" title="Java"></a>Java</h2><h3 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">encrypt</span><span class="params">(String text, String key)</span></span>&#123;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      DESedeKeySpec spec = <span class="keyword">new</span> DESedeKeySpec(key.getBytes());</div><div class="line">      SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(<span class="string">"desede"</span>);</div><div class="line">      Key destKey = keyFactory.generateSecret(spec);</div><div class="line">      Cipher cipher = Cipher.getInstance(<span class="string">"desede"</span> + <span class="string">"/ECB/PKCS5Padding"</span>);</div><div class="line">      cipher.init(Cipher.ENCRYPT_MODE, destKey);</div><div class="line">      <span class="keyword">byte</span>[] textBs = text.getBytes(<span class="string">"UTF-8"</span>);</div><div class="line">      <span class="keyword">byte</span>[] cipherText = cipher.doFinal(textBs);</div><div class="line">      BASE64Encoder b64encoder = <span class="keyword">new</span> BASE64Encoder();</div><div class="line">      <span class="keyword">return</span> b64encoder.encode(cipherText);</div><div class="line">    &#125; <span class="keyword">catch</span> (InvalidKeyException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (NoSuchAlgorithmException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (InvalidKeySpecException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (NoSuchPaddingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (BadPaddingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (UnsupportedEncodingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (IllegalBlockSizeException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">decrypt</span><span class="params">(String decryptedText, String key)</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">      BASE64Decoder b64decoder = <span class="keyword">new</span> BASE64Decoder();</div><div class="line">      <span class="keyword">byte</span>[] textBs = b64decoder.decodeBuffer(decryptedText);</div><div class="line">      DESedeKeySpec spec = <span class="keyword">new</span> DESedeKeySpec(key.getBytes());</div><div class="line">      SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(<span class="string">"desede"</span>);</div><div class="line">      Key destKey = keyFactory.generateSecret(spec);</div><div class="line">      Cipher cipher = Cipher.getInstance(<span class="string">"desede"</span> + <span class="string">"/ECB/PKCS5Padding"</span>);</div><div class="line">      cipher.init(Cipher.DECRYPT_MODE, destKey);</div><div class="line">      <span class="keyword">byte</span>[] cipherText = cipher.doFinal(textBs);</div><div class="line">      <span class="keyword">return</span> <span class="keyword">new</span> String(cipherText,<span class="string">"UTF-8"</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (InvalidKeyException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (NoSuchAlgorithmException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (InvalidKeySpecException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (NoSuchPaddingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (BadPaddingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (UnsupportedEncodingException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (IllegalBlockSizeException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">  &#125;</div></pre></td></tr></table></figure>
+<h3 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h3><p><strong>注意在使用<code>Cipher.getInstance</code>选择加密解密算法时，如果选择desede，也即忽略工作模式和填充模式后，将使用默认的”/ECB/PKCS5Padding”。由于其他语言的默认方式可能不同，将导致不同语言在加解密时异常。</strong></p>
+<p><em>使用到生产环境时，需要处理异常</em></p>
+<h2 id="Python"><a href="#Python" class="headerlink" title="Python"></a>Python</h2><h3 id="代码-1"><a href="#代码-1" class="headerlink" title="代码"></a>代码</h3><h3 id="Python2"><a href="#Python2" class="headerlink" title="Python2"></a>Python2</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># encoding:utf-8</span></div><div class="line"></div><div class="line"><span class="keyword">from</span> Crypto.Cipher <span class="keyword">import</span> DES3</div><div class="line"><span class="keyword">import</span> base64</div><div class="line"></div><div class="line"><span class="comment"># 加密模式 ECB , 填充模式 PKCS5Padding</span></div><div class="line">BS = DES3.block_size</div><div class="line">pad = <span class="keyword">lambda</span> s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)</div><div class="line">unpad = <span class="keyword">lambda</span> s : s[<span class="number">0</span>:-ord(s[<span class="number">-1</span>])]</div><div class="line"></div><div class="line"><span class="string">'''</span></div><div class="line">  DES3加密</div><div class="line">  text 待加密字符串</div><div class="line">  key 密钥，使用appsecret</div><div class="line">'''</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">encrypt</span><span class="params">(text, key)</span>:</span></div><div class="line">    text = pad(text)</div><div class="line">    cipher = DES3.new(key,DES3.MODE_ECB)</div><div class="line">    m = cipher.encrypt(text)</div><div class="line">    m = base64.b64encode(m)</div><div class="line">    <span class="keyword">return</span> m.decode(<span class="string">'utf-8'</span>)</div><div class="line"></div><div class="line"><span class="string">'''</span></div><div class="line">  DES3解密</div><div class="line">  decrypted_text 解密字符串</div><div class="line">  key 密钥，使用appsecret</div><div class="line">'''</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">decrypt</span><span class="params">(decrypted_text, key)</span>:</span></div><div class="line">    text = base64.b64decode(decrypted_text)</div><div class="line">    cipher = DES3.new(key, DES3.MODE_ECB)</div><div class="line">    s = cipher.decrypt(text)</div><div class="line">    s = unpad(s)</div><div class="line">    <span class="keyword">return</span> s.decode(<span class="string">'utf-8'</span>)</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    <span class="keyword">print</span> encrypt(<span class="string">'Hello'</span>,<span class="string">'1234567887654321'</span>)</div><div class="line">    <span class="keyword">print</span> decrypt(<span class="string">'qO8nDeYzqTs='</span>,<span class="string">'1234567887654321'</span>)</div></pre></td></tr></table></figure>
+<h3 id="Python3"><a href="#Python3" class="headerlink" title="Python3"></a>Python3</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># encoding:utf-8</span></div><div class="line"></div><div class="line"><span class="keyword">from</span> Crypto.Cipher <span class="keyword">import</span> DES3</div><div class="line"><span class="keyword">import</span> base64</div><div class="line"></div><div class="line"><span class="comment"># 加密模式 ECB , 填充模式 PKCS5Padding</span></div><div class="line">BS = DES3.block_size</div><div class="line">pad = <span class="keyword">lambda</span> s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)</div><div class="line">unpad = <span class="keyword">lambda</span> s : s[<span class="number">0</span>:-s[<span class="number">-1</span>]]</div><div class="line"></div><div class="line"><span class="string">'''</span></div><div class="line">  DES3加密</div><div class="line">  参数：</div><div class="line">    text str 待加密字符串</div><div class="line">    key str 密钥，使用appsecret</div><div class="line">  返回：</div><div class="line">    str 加密后的字符串</div><div class="line">'''</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">encrypt</span><span class="params">(text, key)</span>:</span></div><div class="line">    text = pad(text)</div><div class="line">    cipher = DES3.new(key,DES3.MODE_ECB)</div><div class="line">    m = cipher.encrypt(text) <span class="comment"># m is bytes</span></div><div class="line">    <span class="comment">#m = base64.encodestring(m) # 会追加\n</span></div><div class="line">    m = base64.b64encode(m)</div><div class="line">    decrypted_text = m.decode(<span class="string">'utf-8'</span>)</div><div class="line">    <span class="keyword">return</span> decrypted_text</div><div class="line"></div><div class="line"><span class="string">'''</span></div><div class="line">  DES3解密</div><div class="line">  参数：</div><div class="line">    decrypted_text str 解密字符串</div><div class="line">    key str 密钥，使用appsecret</div><div class="line">  返回：</div><div class="line">    str 解密后的原始字符串</div><div class="line">'''</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">decrypt</span><span class="params">(decrypted_text, key)</span>:</span></div><div class="line">    decrypted_bytes = bytes(decrypted_text, encoding=<span class="string">'utf-8'</span>)</div><div class="line">    <span class="comment">#text = base64.decodestring(decrypted_bytes) #</span></div><div class="line">    text = base64.b64decode(decrypted_bytes) <span class="comment">#</span></div><div class="line">    cipher = DES3.new(key, DES3.MODE_ECB)</div><div class="line">    s = cipher.decrypt(text)</div><div class="line">    s = unpad(s)</div><div class="line">    s = s.decode(<span class="string">'utf-8'</span>) <span class="comment"># unpad and decode bytes to str</span></div><div class="line">    <span class="keyword">return</span> s</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    print(encrypt(<span class="string">'Hello'</span>,<span class="string">'1234567887654321'</span>))</div><div class="line">    print(decrypt(<span class="string">'qO8nDeYzqTs='</span>,<span class="string">'1234567887654321'</span>))</div></pre></td></tr></table></figure>
+<h3 id="注意-1"><a href="#注意-1" class="headerlink" title="注意"></a>注意</h3><p>注意base64的encodestring已不推荐使用，且会在末尾加入”\n”,使用b64encode代替。</p>
+<p>python2中<code>cipher.decrypt</code>和<code>cipher.encrypt</code>以及<code>base64.b64encode</code>和<code>base64.b64decode</code>返回的是<code>str</code>，而python3中返回的是<code>bytes</code>。所以python3中unpad时无需再使用ord获取字符的对应ascii数值。</p>
+<h2 id="NodeJS"><a href="#NodeJS" class="headerlink" title="NodeJS"></a>NodeJS</h2><h3 id="代码-2"><a href="#代码-2" class="headerlink" title="代码"></a>代码</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">var</span> crypto = <span class="built_in">require</span>(<span class="string">'crypto'</span>);</div><div class="line"><span class="keyword">var</span> key = <span class="string">'123456781234567812345678'</span>; <span class="comment">//加密的秘钥 app secret</span></div><div class="line"><span class="keyword">var</span> demo_encryped = <span class="string">'oVmfzWxhH88='</span>;</div><div class="line"><span class="keyword">var</span> demo_decryped = <span class="string">'Hello'</span>;</div><div class="line"></div><div class="line">encrypt = <span class="function"><span class="keyword">function</span> (<span class="params">str</span>) </span>&#123;</div><div class="line">    <span class="keyword">var</span> cipher = crypto.createCipheriv(<span class="string">'des-ede3'</span>, key, <span class="keyword">new</span> Buffer(<span class="number">0</span>));</div><div class="line">    <span class="keyword">var</span> crypted = cipher.update(str, <span class="string">'utf8'</span>, <span class="string">'base64'</span>);  <span class="comment">// data[, input_encoding][, output_encoding]</span></div><div class="line">    crypted += cipher.final(<span class="string">'base64'</span>);</div><div class="line">    <span class="keyword">return</span> crypted;</div><div class="line">&#125;</div><div class="line"></div><div class="line">decrypt = <span class="function"><span class="keyword">function</span>(<span class="params">str</span>) </span>&#123;</div><div class="line">	<span class="keyword">var</span> decipher = crypto.createDecipheriv(<span class="string">'des-ede3'</span>, key, <span class="keyword">new</span> Buffer(<span class="number">0</span>));</div><div class="line">	<span class="keyword">var</span> dec = decipher.update(str, <span class="string">'base64'</span>, <span class="string">'utf8'</span>);</div><div class="line">	dec += decipher.final(<span class="string">'utf8'</span>);</div><div class="line">	<span class="keyword">return</span> dec;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="built_in">console</span>.log(encrypt(demo_decryped))</div><div class="line"><span class="built_in">console</span>.log(decrypt(demo_encryped))</div></pre></td></tr></table></figure>
+<h3 id="注意-2"><a href="#注意-2" class="headerlink" title="注意"></a>注意</h3><p>nodejs中的<code>crypto</code>依赖openssl，使用<code>&gt;openssl list-cipher-algorithms</code>获取支持的算法列表。 如果需要选择其他的算法，可参考openssl。</p>
+<p>desede其实是3des的别称（反过来说也可以）。</p>
+<p>注意使用nodejs时，要使用<code>createDecipheriv</code>，IV可传入<code>new Buffer(0)</code></p>
+<h2 id="CSharp"><a href="#CSharp" class="headerlink" title="CSharp"></a>CSharp</h2><h3 id="代码-3"><a href="#代码-3" class="headerlink" title="代码"></a>代码</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">using</span> System;</div><div class="line"><span class="keyword">using</span> System.Collections.Generic;</div><div class="line"><span class="keyword">using</span> System.Linq;</div><div class="line"><span class="keyword">using</span> System.Text;</div><div class="line"><span class="keyword">using</span> System.IO;</div><div class="line"><span class="keyword">using</span> System.Security.Cryptography;</div><div class="line"></div><div class="line"><span class="keyword">namespace</span> ConsoleApplication4</div><div class="line">&#123;</div><div class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Program</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Encrypt3DES</span><span class="params">(<span class="built_in">string</span> a_strString, <span class="built_in">string</span> a_strKey)</span></span></div><div class="line">        &#123;</div><div class="line">            TripleDESCryptoServiceProvider DES = <span class="keyword">new</span> TripleDESCryptoServiceProvider();</div><div class="line"></div><div class="line">            DES.Key = ASCIIEncoding.ASCII.GetBytes(a_strKey);</div><div class="line">            DES.Mode = CipherMode.ECB;</div><div class="line"></div><div class="line">            ICryptoTransform DESEncrypt = DES.CreateEncryptor();</div><div class="line"></div><div class="line">            byte[] Buffer = UTF8Encoding.UTF8.GetBytes(a_strString);</div><div class="line">            <span class="keyword">return</span> Convert.ToBase64String(DESEncrypt.TransformFinalBlock(Buffer, <span class="number">0</span>, Buffer.Length));</div><div class="line">        &#125;</div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Decrypt3DES</span><span class="params">(<span class="built_in">string</span> a_strString, <span class="built_in">string</span> a_strKey)</span></span></div><div class="line">        &#123;</div><div class="line">            TripleDESCryptoServiceProvider DES = <span class="keyword">new</span> TripleDESCryptoServiceProvider();</div><div class="line"></div><div class="line">            DES.Key = ASCIIEncoding.ASCII.GetBytes(a_strKey);</div><div class="line">            DES.Mode = CipherMode.ECB;</div><div class="line">            DES.Padding = System.Security.Cryptography.PaddingMode.PKCS7;</div><div class="line"></div><div class="line">            ICryptoTransform DESDecrypt = DES.CreateDecryptor();</div><div class="line"></div><div class="line">            <span class="built_in">string</span> result = <span class="string">""</span>;</div><div class="line">            <span class="keyword">try</span></div><div class="line">            &#123;</div><div class="line">                byte[] Buffer = Convert.FromBase64String(a_strString);</div><div class="line">                byte[] temp = DESDecrypt.TransformFinalBlock(Buffer, <span class="number">0</span>, Buffer.Length);</div><div class="line">                result = UTF8Encoding.UTF8.GetString(temp);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">catch</span> (Exception e)</div><div class="line">            &#123;</div><div class="line">                Console.WriteLine(<span class="string">"A Cryptographic error occurred: &#123;0&#125;"</span>, e.Message);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">return</span> result;</div><div class="line">        &#125;</div><div class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span><span class="params">()</span></span></div><div class="line">        &#123;</div><div class="line">            <span class="comment">// Console.WriteLine("hello world");</span></div><div class="line">            <span class="comment">// Console.ReadLine();</span></div><div class="line">            System.Text.Encoding utf8 = System.Text.Encoding.UTF8;</div><div class="line">            <span class="built_in">string</span> sourceTxt = <span class="string">"Hello"</span>;</div><div class="line">            <span class="built_in">string</span> appSecert = <span class="string">"123456781234567812345678"</span>;</div><div class="line"></div><div class="line">            <span class="built_in">string</span> result = Encrypt3DES(sourceTxt, appSecert);</div><div class="line">            Console.WriteLine(result);</div><div class="line">            Console.ReadLine();</div><div class="line"></div><div class="line">            <span class="built_in">string</span> result2 = Decrypt3DES(result, appSecert);</div><div class="line">            Console.WriteLine(result2);</div><div class="line">            Console.ReadLine();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="PHP"><a href="#PHP" class="headerlink" title="PHP"></a>PHP</h2><h3 id="代码-4"><a href="#代码-4" class="headerlink" title="代码"></a>代码</h3><figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div></pre></td><td class="code"><pre><div class="line"><span class="meta">&lt;?php</span></div><div class="line"> <span class="comment">//定义3DES加密key</span></div><div class="line">define(<span class="string">'CRYPT_KEYS'</span>, <span class="string">'123456781234567812345678'</span>);</div><div class="line"></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">DES</span> </span>&#123;</div><div class="line">	<span class="keyword">private</span> $key = CRYPT_KEYS;</div><div class="line">	<span class="comment">//只有CBC模式下需要iv，其他模式下iv会被忽略 </span></div><div class="line">	<span class="keyword">private</span> $iv = <span class="string">''</span>;</div><div class="line"></div><div class="line">	<span class="comment">/**</span></div><div class="line">	* 加密</div><div class="line">	*/</div><div class="line">	<span class="keyword">public</span>  <span class="function"><span class="keyword">function</span> <span class="title">encrypt</span><span class="params">($value)</span> </span>&#123;</div><div class="line">		<span class="comment">//先确定加密模式，此处以ECB为例</span></div><div class="line">		$td = mcrypt_module_open ( MCRYPT_3DES,<span class="string">''</span>, MCRYPT_MODE_ECB,<span class="string">''</span>);</div><div class="line">		<span class="comment">//$iv = pack ( 'H16', $this-&gt;iv );</span></div><div class="line">		$value = <span class="keyword">$this</span>-&gt;PaddingPKCS7 ( $value ); <span class="comment">//填充</span></div><div class="line">		<span class="comment">//$key = pack ( 'H48', $this-&gt;key );</span></div><div class="line">		mcrypt_generic_init ( $td, <span class="keyword">$this</span>-&gt;key, <span class="keyword">$this</span>-&gt;iv);</div><div class="line">		$ret = base64_encode ( mcrypt_generic ( $td, $value ) );</div><div class="line">		mcrypt_generic_deinit ( $td );</div><div class="line">		mcrypt_module_close ( $td );</div><div class="line">		<span class="keyword">return</span> $ret;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">/**</span></div><div class="line">	* 解密</div><div class="line">	*/</div><div class="line">	<span class="keyword">public</span>  <span class="function"><span class="keyword">function</span> <span class="title">decrypt</span><span class="params">($value)</span> </span>&#123;</div><div class="line">		$td = mcrypt_module_open ( MCRYPT_3DES, <span class="string">''</span>, MCRYPT_MODE_ECB, <span class="string">''</span> );</div><div class="line">		<span class="comment">//$iv = pack ( 'H16', $this-&gt;iv );</span></div><div class="line">		<span class="comment">//$key = pack ( 'H48', $this-&gt;key );</span></div><div class="line">		mcrypt_generic_init ( $td, <span class="keyword">$this</span>-&gt;key,<span class="keyword">$this</span>-&gt;iv );</div><div class="line">		$ret = trim ( mdecrypt_generic ( $td, base64_decode ( $value ) ) );</div><div class="line">		$ret = <span class="keyword">$this</span>-&gt;UnPaddingPKCS7 ( $ret );</div><div class="line">		mcrypt_generic_deinit ( $td );</div><div class="line">		mcrypt_module_close ( $td );</div><div class="line">		<span class="keyword">return</span> $ret;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">private</span>  <span class="function"><span class="keyword">function</span> <span class="title">PaddingPKCS7</span><span class="params">($data)</span> </span>&#123;</div><div class="line">		$padlen =  <span class="number">8</span> - strlen( $data ) % <span class="number">8</span> ;</div><div class="line">		<span class="keyword">for</span>($i = <span class="number">0</span>; $i &lt; $padlen; $i ++)</div><div class="line">			$data .= chr( $padlen );</div><div class="line">		<span class="keyword">return</span> $data;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">private</span>  <span class="function"><span class="keyword">function</span> <span class="title">UnPaddingPKCS7</span><span class="params">($data)</span> </span>&#123;</div><div class="line">		$padlen = ord (substr($data, (strlen( $data )<span class="number">-1</span>), <span class="number">1</span> ) );</div><div class="line">		<span class="keyword">if</span> ($padlen &gt; <span class="number">8</span> )</div><div class="line">			<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line"></div><div class="line">		<span class="keyword">for</span>($i = <span class="number">-1</span>*($padlen-strlen($data)); $i &lt; strlen ( $data ); $i ++) &#123;</div><div class="line">			<span class="keyword">if</span> (ord ( substr ( $data, $i, <span class="number">1</span> ) ) != $padlen)<span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">return</span> substr ( $data, <span class="number">0</span>, <span class="number">-1</span>*($padlen-strlen ( $data ) ) );</div><div class="line">	&#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="CPP"><a href="#CPP" class="headerlink" title="CPP"></a>CPP</h2><h3 id="代码-5"><a href="#代码-5" class="headerlink" title="代码"></a>代码</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/des.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;openssl/evp.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">pragma</span> comment(lib, <span class="meta-string">"libcrypto.lib"</span>)</span></div><div class="line"><span class="meta">#<span class="meta-keyword">pragma</span> comment(lib, <span class="meta-string">"libssl.lib"</span>)</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Des</span> &#123;</span></div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> CFBMODE = <span class="number">64</span>;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line">	<span class="keyword">static</span> <span class="built_in">std</span>::<span class="function"><span class="built_in">string</span> <span class="title">encrypt</span><span class="params">(<span class="built_in">std</span>::<span class="built_in">string</span> tmp_key, <span class="built_in">std</span>::<span class="built_in">string</span> in)</span> </span>&#123;</div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> key[<span class="number">24</span>];</div><div class="line"></div><div class="line">		<span class="built_in">memset</span>(key, <span class="number">0</span>, <span class="keyword">sizeof</span>(key));</div><div class="line">		<span class="built_in">memcpy</span>(key, tmp_key.c_str(), <span class="keyword">sizeof</span>(key));</div><div class="line"></div><div class="line">		DES_key_schedule schedule;</div><div class="line">		DES_key_schedule schedule2;</div><div class="line">		DES_key_schedule schedule3;</div><div class="line">		DES_cblock desKey = &#123; <span class="number">0</span> &#125;;</div><div class="line"></div><div class="line">		<span class="built_in">memcpy</span>(desKey, key, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule);</div><div class="line">		<span class="built_in">memcpy</span>(desKey, key + <span class="number">8</span>, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule2);</div><div class="line">		<span class="built_in">memcpy</span>(desKey, key + <span class="number">16</span>, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule3);</div><div class="line">		<span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line">		<span class="keyword">const</span> <span class="keyword">size_t</span> paddingLength = (<span class="number">8</span> - in.length() % <span class="number">8</span>);</div><div class="line"></div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> padding[<span class="number">8</span>];</div><div class="line">		<span class="built_in">memset</span>(padding, <span class="number">8</span> - (in.length() % <span class="number">8</span>), <span class="number">8</span>);</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (paddingLength)</div><div class="line">		&#123;</div><div class="line">			in.append((<span class="keyword">char</span>*)padding, paddingLength);</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">size_t</span> dataLength = paddingLength + in.length();</div><div class="line">		<span class="keyword">char</span> tmp_buf[<span class="number">8</span>];</div><div class="line">		<span class="built_in">memset</span>(tmp_buf, <span class="number">0</span>, <span class="number">8</span>);</div><div class="line">		<span class="built_in">std</span>::<span class="built_in">string</span> data;</div><div class="line">		<span class="comment">//data.reserve(dataLength);</span></div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> input[<span class="number">8</span>];</div><div class="line">		<span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; (dataLength / <span class="number">8</span>); i++)</div><div class="line">		&#123;</div><div class="line">			<span class="comment">/*</span></div><div class="line">			DES_ede3_cfb_encrypt((const unsigned char*)in.c_str() + (i * 8), (unsigned char*)tmp_buf, CFBMODE, 8, &amp;schedule,</div><div class="line">				&amp;schedule2, &amp;schedule3, &amp;iv,</div><div class="line">				DES_ENCRYPT);</div><div class="line">			*/</div><div class="line">			<span class="comment">//memset(input, 0, 8);</span></div><div class="line">			<span class="built_in">memcpy</span>(input, in.c_str() + (i * <span class="number">8</span>), <span class="number">8</span>);</div><div class="line"></div><div class="line">			DES_ecb3_encrypt((const_DES_cblock*)input, (DES_cblock*)tmp_buf,&amp;schedule, &amp;schedule2, &amp;schedule3, DES_ENCRYPT);</div><div class="line"></div><div class="line">			data.append(tmp_buf, <span class="keyword">sizeof</span>(tmp_buf));</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> data;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">static</span> <span class="built_in">std</span>::<span class="function"><span class="built_in">string</span> <span class="title">decrypt</span><span class="params">(<span class="built_in">std</span>::<span class="built_in">string</span> tmp_key, <span class="built_in">std</span>::<span class="built_in">string</span> in)</span> </span>&#123;</div><div class="line">		<span class="comment">//偏移向量</span></div><div class="line">		<span class="comment">//24位加密key，3des下秘钥必须为24位</span></div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> key[<span class="number">24</span>];</div><div class="line"></div><div class="line">		<span class="built_in">memset</span>(key, <span class="number">0</span>, <span class="keyword">sizeof</span>(key));</div><div class="line">		<span class="built_in">memcpy</span>(key, tmp_key.c_str(), <span class="keyword">sizeof</span>(key));</div><div class="line"></div><div class="line">		DES_key_schedule schedule;</div><div class="line">		DES_key_schedule schedule2;</div><div class="line">		DES_key_schedule schedule3;</div><div class="line">		DES_cblock desKey = &#123; <span class="number">0</span> &#125;;</div><div class="line">		DES_cblock iv = &#123; <span class="number">0</span> &#125;;</div><div class="line">		<span class="built_in">memcpy</span>(desKey, key, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule);</div><div class="line">		<span class="built_in">memcpy</span>(desKey, key + <span class="number">8</span>, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule2);</div><div class="line">		<span class="built_in">memcpy</span>(desKey, key + <span class="number">16</span>, <span class="number">8</span>);</div><div class="line">		DES_set_key_unchecked(&amp;desKey, &amp;schedule3);</div><div class="line">		<span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line">		<span class="built_in">std</span>::<span class="built_in">string</span> padding;</div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> input[<span class="number">8</span>];</div><div class="line">		<span class="keyword">unsigned</span> <span class="keyword">char</span> tmp_buf[<span class="number">8</span>];</div><div class="line">		<span class="comment">//memset(tmp_buf, 0, 8);</span></div><div class="line">		<span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; (in.length() / <span class="number">8</span>); i++)</div><div class="line">		&#123;</div><div class="line">			<span class="comment">/*</span></div><div class="line">			DES_ede3_cfb_encrypt((const unsigned char*)in.c_str() + (i * 8), (unsigned char*)tmp_buf, CFBMODE, 8, &amp;schedule,</div><div class="line">				&amp;schedule2, &amp;schedule3, &amp;iv,</div><div class="line">				DES_DECRYPT);</div><div class="line">			*/</div><div class="line">			<span class="built_in">memcpy</span>(input, in.c_str() + (i * <span class="number">8</span>), <span class="number">8</span>);</div><div class="line">			DES_ecb3_encrypt((const_DES_cblock*)input, (DES_cblock*)tmp_buf,  &amp;schedule,</div><div class="line">				&amp;schedule2, &amp;schedule3, DES_DECRYPT);</div><div class="line"></div><div class="line">			<span class="keyword">if</span> (i == ((in.length() / <span class="number">8</span>) - <span class="number">1</span>) &amp;&amp; tmp_buf[<span class="number">7</span>] &gt;= <span class="number">0x01</span> &amp;&amp; tmp_buf[<span class="number">7</span>] &lt;= <span class="number">0x08</span>)</div><div class="line">			&#123;</div><div class="line">				padding.append((<span class="keyword">char</span> *)tmp_buf, <span class="number">8</span> - tmp_buf[<span class="number">7</span>]);</div><div class="line">			&#125;</div><div class="line">			<span class="keyword">else</span></div><div class="line">			&#123;</div><div class="line">				padding.append((<span class="keyword">char</span> *)tmp_buf, <span class="number">8</span>);</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> padding;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>C++不懂，同事帮忙写的。</p>
+<p>以上代码可以在我的<a href="https://github.com/eXcellme/tripledes-demo" target="_blank" rel="external">Github</a>上找到。</p>
+<hr>
+<p>参考：<br>1 <a href="http://asecuritysite.com/encryption" target="_blank" rel="external">A Security Site</a><br>2 <a href="http://likang.me/blog/2013/06/05/python-pycrypto-aes-ecb-pkcs-5/" target="_blank" rel="external">使用 PyCrypto 进行 AES/ECB/PKCS#5(7) 加密</a><br>3 <a href="https://github.com/eXcellme/tripledes-demo" target="_blank" rel="external">https://github.com/eXcellme/tripledes-demo</a><br>4 <a href="https://crypto.stackexchange.com/questions/9043/what-is-the-difference-between-pkcs5-padding-and-pkcs7-padding" target="_blank" rel="external">PKCS5Padding和PKCS7Padding的区别</a><br>5 <a href="https://stackoverflow.com/questions/17280104/difference-between-desede-and-tripledes-for-cipher-getinstance" target="_blank" rel="external">StackOverflow Difference between DESede and TripleDES for cipher.getInstance()</a><br>6 <a href="https://docs.python.org/2.7/library/base64.html?highlight=base64#module-base64" target="_blank" rel="external">Python2.7 base64 doc</a> , <a href="https://docs.python.org/3.6/library/base64.html?highlight=base64#module-base64" target="_blank" rel="external">Python3.6 base64 doc</a><br>7 <a href="http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/8u40-b25/com/sun/crypto/provider/DESedeCipher.java#DESedeCipher" target="_blank" rel="external">GrepCode com.sun.crypto.provider.DESedeCipher OpenJDK8实现</a><br>8 <a href="https://www.youtube.com/watch?v=rFV0aes0vYA" target="_blank" rel="external">YouTube - AES DES 3DES简介</a><br>9 <a href="https://www.youtube.com/watch?v=uPiqyQOMH1E" target="_blank" rel="external">YouTube - ECB vs CBC</a><br>10 <a href="https://nodejs.org/api/crypto.html#crypto_crypto_createcipheriv_algorithm_key_iv" target="_blank" rel="external">Nodejs crypto api</a><br>11 <a href="https://zh.wikipedia.org/wiki/%E4%B8%AD%E9%80%94%E7%9B%B8%E9%81%87%E6%94%BB%E6%93%8A" target="_blank" rel="external">中途相遇攻击Wiki</a><br>12 <a href="https://zh.wikipedia.org/wiki/%E5%88%86%E7%BB%84%E5%AF%86%E7%A0%81%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F#.E5.AF.86.E7.A0.81.E5.9D.97.E9.93.BE.E6.8E.A5.EF.BC.88CBC.EF.BC.89" target="_blank" rel="external">分组密码工作模式Wiki</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/3DES/" rel="tag"># 3DES</a>
+          
+            <a href="/tags/crypto/" rel="tag"># crypto</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/23/基于ELK和Python搭建简单的监控告警系统/" rel="next" title="基于ELK和Python搭建简单的监控告警系统">
+                <i class="fa fa-chevron-left"></i> 基于ELK和Python搭建简单的监控告警系统
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/03/《软技能》读书笔记/" rel="prev" title="《软技能》读书笔记">
+                《软技能》读书笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#3DES加解密简介"><span class="nav-number">1.</span> <span class="nav-text">3DES加解密简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#分组密码工作模式"><span class="nav-number">1.1.</span> <span class="nav-text">分组密码工作模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分组密码初始化向量（IV）"><span class="nav-number">1.2.</span> <span class="nav-text">分组密码初始化向量（IV）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分组密码填充"><span class="nav-number">1.3.</span> <span class="nav-text">分组密码填充</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#加密后字节转文本"><span class="nav-number">1.4.</span> <span class="nav-text">加密后字节转文本</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#多语言举例"><span class="nav-number">2.</span> <span class="nav-text">多语言举例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Java"><span class="nav-number">2.1.</span> <span class="nav-text">Java</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码"><span class="nav-number">2.1.1.</span> <span class="nav-text">代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注意"><span class="nav-number">2.1.2.</span> <span class="nav-text">注意</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python"><span class="nav-number">2.2.</span> <span class="nav-text">Python</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码-1"><span class="nav-number">2.2.1.</span> <span class="nav-text">代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Python2"><span class="nav-number">2.2.2.</span> <span class="nav-text">Python2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Python3"><span class="nav-number">2.2.3.</span> <span class="nav-text">Python3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注意-1"><span class="nav-number">2.2.4.</span> <span class="nav-text">注意</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NodeJS"><span class="nav-number">2.3.</span> <span class="nav-text">NodeJS</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码-2"><span class="nav-number">2.3.1.</span> <span class="nav-text">代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#注意-2"><span class="nav-number">2.3.2.</span> <span class="nav-text">注意</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CSharp"><span class="nav-number">2.4.</span> <span class="nav-text">CSharp</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码-3"><span class="nav-number">2.4.1.</span> <span class="nav-text">代码</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PHP"><span class="nav-number">2.5.</span> <span class="nav-text">PHP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码-4"><span class="nav-number">2.5.1.</span> <span class="nav-text">代码</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CPP"><span class="nav-number">2.6.</span> <span class="nav-text">CPP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#代码-5"><span class="nav-number">2.6.1.</span> <span class="nav-text">代码</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/06/27/多语言3DES加解密举例/';
+          this.page.identifier = '2017/06/27/多语言3DES加解密举例/';
+          this.page.title = '多语言3DES加解密举例';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

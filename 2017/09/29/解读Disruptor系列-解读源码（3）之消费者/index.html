@@ -1,0 +1,870 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="之前我们已经熟悉了Disruptor的启动和事件生产操作，接下来我们一同探究Disruptor如何消费事件。 0x00 概念回顾我们先回顾下Disruptor消费相关的名词概念：Event： Disruptor中传输的事件。RingBuffer： 存储和更新事件的容器。EventHandler： 用户实现接口，包含消费处理逻辑，代表Disruptor一个消费者。EventProcessor： Ev">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列--解读源码（3）之消费者">
+<meta property="og:url" content="http://coderjerry.com/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="之前我们已经熟悉了Disruptor的启动和事件生产操作，接下来我们一同探究Disruptor如何消费事件。 0x00 概念回顾我们先回顾下Disruptor消费相关的名词概念：Event： Disruptor中传输的事件。RingBuffer： 存储和更新事件的容器。EventHandler： 用户实现接口，包含消费处理逻辑，代表Disruptor一个消费者。EventProcessor： Ev">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-bf93ca343faea52e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-b5d9a7395f58a391.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-31c19bfeaf326562.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.385Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列--解读源码（3）之消费者">
+<meta name="twitter:description" content="之前我们已经熟悉了Disruptor的启动和事件生产操作，接下来我们一同探究Disruptor如何消费事件。 0x00 概念回顾我们先回顾下Disruptor消费相关的名词概念：Event： Disruptor中传输的事件。RingBuffer： 存储和更新事件的容器。EventHandler： 用户实现接口，包含消费处理逻辑，代表Disruptor一个消费者。EventProcessor： Ev">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/931112-bf93ca343faea52e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/"/>
+
+
+
+
+
+  <title>解读Disruptor系列--解读源码（3）之消费者 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列--解读源码（3）之消费者</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-29T14:27:10+08:00">
+                2017-09-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/09/29/解读Disruptor系列-解读源码（3）之消费者/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前我们已经熟悉了Disruptor的启动和事件生产操作，接下来我们一同探究Disruptor如何消费事件。</p>
+<h1 id="0x00-概念回顾"><a href="#0x00-概念回顾" class="headerlink" title="0x00 概念回顾"></a>0x00 概念回顾</h1><p>我们先回顾下Disruptor消费相关的名词概念：<br><strong>Event</strong>： Disruptor中传输的事件。<br><strong>RingBuffer</strong>： 存储和更新事件的容器。<br><strong>EventHandler</strong>： 用户实现接口，包含消费处理逻辑，代表Disruptor一个消费者。<br><strong>EventProcessor</strong>： EventProcessor继承了Runnable接口，包含处理Disruptor事件的主循环。</p>
+<p><strong>多播事件</strong>： 队列和Disruptor在表现行为上最大的区别。队列中的一个事件只能被一个消费者消费，而<strong>Disruptor中的事件会发布给所有消费者</strong>。特别适合同一数据的独立并行处理操作。<br>消费者依赖图（消费链）：同一事件需要被多个消费者消费时，消费者之间可能有依赖关系，如消费者A,B,C，B和C依赖A先执行，但是B和C可以并行消费。</p>
+<h1 id="0x01-EventProcessor接口概览"><a href="#0x01-EventProcessor接口概览" class="headerlink" title="0x01 EventProcessor接口概览"></a>0x01 EventProcessor接口概览</h1><p>OK，咱们正式开始对Disruptor消费者的源码解读。<br>Disruptor的消费者依赖EventProcessor循环处理可用事件。EventProcessor顾名思义，就是事件处理器（handle和process都可以翻译为“处理”，但是process侧重于机器的处理，而handle侧重于有人工的处理，所以使用handle表示用户逻辑的处理，使用process表示机器的处理），这个接口有两个实现类，分别是WorkProcessor和BatchEventProcessor，它们对应的逻辑处理消费者分别是EventHandler和WorkHandler。下面是EventProcessor的UML类图及EventHandler和EventProcessor的接口定义。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-bf93ca343faea52e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">* Callback interface to be implemented for processing events as they become available in the &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">*</div><div class="line">* <span class="doctag">@param</span> &lt;T&gt; event implementation storing the data for sharing during exchange or parallel coordination of an event.</div><div class="line">* <span class="doctag">@see</span> BatchEventProcessor#setExceptionHandler(ExceptionHandler) if you want to handle exceptions propagated out of the handler.</div><div class="line">* 处理事件的回调接口</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">EventHandler</span>&lt;<span class="title">T</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Called when a publisher has published an event to the &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> event      published to the &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">    * <span class="doctag">@param</span> sequence  of the event being processed</div><div class="line">    * <span class="doctag">@param</span> endOfBatch flag to indicate if this is the last event in a batch from the &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">    * <span class="doctag">@throws</span> Exception if the EventHandler would like the exception handled further up the chain.</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(T event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">* EventProcessors waitFor events to become available for consumption from the &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">* &lt;p&gt;</div><div class="line">* An EventProcessor will generally be associated with a Thread for execution.</div><div class="line">* 事件执行器，等待RingBuffer有可用消费事件。一个事件处理器关联一个执行线程</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">EventProcessor</span> <span class="keyword">extends</span> <span class="title">Runnable</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get a reference to the &#123;<span class="doctag">@link</span> Sequence&#125; being used by this &#123;<span class="doctag">@link</span> EventProcessor&#125;.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> reference to the &#123;<span class="doctag">@link</span> Sequence&#125; for this &#123;<span class="doctag">@link</span> EventProcessor&#125;</div><div class="line">    */</div><div class="line">    <span class="function">Sequence <span class="title">getSequence</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Signal that this EventProcessor should stop when it has finished consuming at the next clean break.</div><div class="line">    * It will call &#123;<span class="doctag">@link</span> SequenceBarrier#alert()&#125; to notify the thread to check status.</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">halt</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isRunning</span><span class="params">()</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>EventProcessor接口继承了Runnable接口，主要有两种实现：单线程批量处理<strong>BatchEventProcessor</strong>和多线程处理<strong>WorkProcessor</strong>。<br>在使用Disruptor帮助类构建消费者时，使用handleEventsWith方法传入多个EventHandler，内部使用多个BatchEventProcessor关联多个线程执行。这种情况类似JMS中的<strong>发布订阅模式</strong>，同一事件会被多个消费者并行消费。适用于同一事件触发多种操作。<br>而使用Disruptor的handleEventsWithWorkerPool传入多个WorkHandler时，内部使用多个WorkProcessor关联多个线程执行。这种情况类似JMS的<strong>点对点模式</strong>，同一事件会被一组消费者其中之一消费。适用于提升消费者并行处理能力。</p>
+<h1 id="0x02-消费技术实现"><a href="#0x02-消费技术实现" class="headerlink" title="0x02 消费技术实现"></a>0x02 消费技术实现</h1><p>我们先回顾下Disruptor消费者的两个特点：消费者依赖图（即下文所谓的“消费链”）和事件多播。<br>假设现在有A,B,C,D四个消费者，它们都能组成什么样的形式呢？从众多的排列组合中，我挑了4组比较有代表性的消费链形式。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-b5d9a7395f58a391.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<ul>
+<li>第1组中，消费者A消费按成后，B、C、D可同时消费；</li>
+<li>第2组中，消费者A、B、C、D顺序消费；</li>
+<li>第3组中，消费者A、B顺序消费后，C、D同时消费；</li>
+<li>第4组中，消费者A在消费完成后，B和C可以同时消费，但是必须在都消费完成后，D才能消费。</li>
+</ul>
+<p>标号为1、3、4的消费链都使用了事件多播，可见事件多播属于消费链的一种组合形式。注意，在上面4种组合中，每个组合的每一水平行，都属于一个消费者组。<br>这些还只是较为简单的消费链组成，实际中消费链可能会更复杂。<br>那么在Disruptor内部是怎么实现消费链的呢？<br>我们可以先思考下。<strong>如果想把独立的消费者组成消费链，那么后方的消费者（组）必然要知道在它前方的消费者（组）的处理情况，否则就做不到顺序消费。同时，消费者也要了解生产者的位置，来判断是否有可用事件</strong>。之前我们分析生产者代码的时候，已经讲过，<strong>生产者为了不覆盖没有消费完全的事件，必须知道最慢消费者的处理情况</strong>。<br>做到了这些才会有能力去控制消费者组成消费链。下面让我们具体看Disruptor中的实现。</p>
+<h2 id="0x02-1-使用BatchEventProcessor单线程批处理事件"><a href="#0x02-1-使用BatchEventProcessor单线程批处理事件" class="headerlink" title="0x02.1 使用BatchEventProcessor单线程批处理事件"></a>0x02.1 使用BatchEventProcessor单线程批处理事件</h2><p>在使用BatchEventProcessor时，通过Disruptor#handleEventsWith方法可以获取一个EventHandlerGroup，再通过EventHandlerGroup的and和then方法可以构建一个复杂的消费者链。EventHandlerGroup表示一组事件消费者，内部持有了Disruptor类实例disruptor，其大部分功能都是通过调用disruptor实现，其实可以算作是Disruptor这个辅助类的一部分。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// EventHandlerGroup.java</span></div><div class="line"><span class="function"><span class="keyword">public</span> EventHandlerGroup&lt;T&gt; <span class="title">then</span><span class="params">(<span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt;... handlers)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> handleEventsWith(handlers);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> EventHandlerGroup&lt;T&gt; <span class="title">handleEventsWith</span><span class="params">(<span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt;... handlers)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> disruptor.createEventProcessors(sequences, handlers);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Disruptor.java</span></div><div class="line"><span class="function"><span class="keyword">public</span> EventHandlerGroup&lt;T&gt; <span class="title">handleEventsWith</span><span class="params">(<span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt;... handlers)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> createEventProcessors(<span class="keyword">new</span> Sequence[<span class="number">0</span>], handlers);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 由EventHandlerGroup调用时，barrierSequences是EventHandlerGroup实例的序列，也就是上一个事件处理者组的序列，作为当前事件处理的门控，防止后边的消费链超前</span></div><div class="line"><span class="comment">// 如果是第一次调用handleEventsWith，则barrierSequences是一个空数组</span></div><div class="line">EventHandlerGroup&lt;T&gt; **createEventProcessors**(</div><div class="line">    <span class="keyword">final</span> Sequence[] barrierSequences,</div><div class="line">    <span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt;[] eventHandlers)</div><div class="line">&#123;</div><div class="line">    checkNotStarted();</div><div class="line">    <span class="comment">// 对应此事件处理器组的序列组</span></div><div class="line">    <span class="keyword">final</span> Sequence[] processorSequences = <span class="keyword">new</span> Sequence[eventHandlers.length];</div><div class="line">    <span class="keyword">final</span> SequenceBarrier barrier = ringBuffer.newBarrier(barrierSequences);</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>, eventHandlersLength = eventHandlers.length; i &lt; eventHandlersLength; i++)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt; eventHandler = eventHandlers[i];</div><div class="line">        <span class="comment">// 批量处理事件的循环</span></div><div class="line">        <span class="keyword">final</span> BatchEventProcessor&lt;T&gt; batchEventProcessor =</div><div class="line">            <span class="keyword">new</span> BatchEventProcessor&lt;T&gt;(ringBuffer, barrier, eventHandler);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (exceptionHandler != <span class="keyword">null</span>)</div><div class="line">        &#123;</div><div class="line">            batchEventProcessor.setExceptionHandler(exceptionHandler);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        consumerRepository.add(batchEventProcessor, eventHandler, barrier);</div><div class="line">        processorSequences[i] = batchEventProcessor.getSequence();</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// 每次添加完事件处理器后，更新门控序列，以便后续调用链的添加。（所谓门控，是指后续消费链的消费，不能超过前边。）</span></div><div class="line">    updateGatingSequencesForNextInChain(barrierSequences, processorSequences);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> EventHandlerGroup&lt;T&gt;(<span class="keyword">this</span>, consumerRepository, processorSequences);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 为消费链下一组消费者，更新门控序列</span></div><div class="line"><span class="comment">// barrierSequences是上一组事件处理器组的序列（如果本次是第一次，则为空数组），本组不能超过上组序列值</span></div><div class="line"><span class="comment">// processorSequences是本次要设置的事件处理器组的序列</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">updateGatingSequencesForNextInChain</span><span class="params">(<span class="keyword">final</span> Sequence[] barrierSequences, <span class="keyword">final</span> Sequence[] processorSequences)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (processorSequences.length &gt; <span class="number">0</span>)</div><div class="line">    &#123;</div><div class="line">        ringBuffer.addGatingSequences(processorSequences); <span class="comment">// 将本组序列添加到Sequencer中的gatingSequences中</span></div><div class="line">        <span class="keyword">for</span> (<span class="keyword">final</span> Sequence barrierSequence : barrierSequences) <span class="comment">// 将上组序列从Sequencer中的gatingSequences中，gatingSequences一直保存消费链末端消费者的序列组</span></div><div class="line">        &#123;</div><div class="line">            ringBuffer.removeGatingSequence(barrierSequence);</div><div class="line">        &#125;</div><div class="line">        consumerRepository.unMarkEventProcessorsAsEndOfChain(barrierSequences); <span class="comment">// 取消标记上一组消费者为消费链末端</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到，使用BatchEventProcessor构建消费者链时的逻辑都在createEventProcessors这个方法中。<br>先简单说下ConsumerRepository，这个类主要保存消费者的各种关系，如通过EventHandler引用获取EventProcessorInfo信息，通过Sequence获取ConsumerInfo信息等。<strong>因为要使用引用做key，所以数据结构使用IdentityHashMap</strong>。<strong>IdentityHashMap</strong><br><strong>和HashMap最大的不同，就是使用==而不是equals比较key</strong>。<br>这个<strong>createEventProcessors</strong>方法接收两个参数，barrierSequences表示当前消费者组的屏障序列数组，如果当前消费者组是第一组，则取一个空的序列数组；否则，barrierSequences就是上一组消费者组的序列数组。createEventProcessors方法的另一个参数eventHandlers，这个参数是代表事件消费逻辑的EventHandler数组。<br>Disruptor为每个EventHandler实现类都创建了一个对应的BatchEventProcessor。<br>在构建BatchEventProcessor时需要以下传入三个构造参数：dataProvider是数据存储结构如RingBuffer；sequenceBarrier用于跟踪生产者游标，协调数据处理；eventHandler是用户实现的事件处理器，也就是实际的消费者。<br>注意，Disruptor并非为每个BatchEventProcessor都创建一个新的SequenceBarrier，而是<strong>每个消费者组共用一个SequenceBarrier</strong>。<br>BatchEventProcessor定义如下。至于为什么要叫做<strong>Batch</strong>EventProcessor，可以看看在run()方法里每次waitFor获取的availableSequence是当前能够使用的最大值，然后再循环处理这些数据。这样当消费者有瞬时抖动，导致暂时落后生产者时，可在下一次循环中，批量处理所有落后的事件。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line">* Convenience class for handling the batching semantics of consuming entries from a &#123;<span class="doctag">@link</span> RingBuffer&#125;</div><div class="line">* and delegating the available events to an &#123;<span class="doctag">@link</span> EventHandler&#125;.</div><div class="line">* &lt;p&gt;</div><div class="line">* If the &#123;<span class="doctag">@link</span> EventHandler&#125; also implements &#123;<span class="doctag">@link</span> LifecycleAware&#125; it will be notified just after the thread</div><div class="line">* is started and just before the thread is shutdown.</div><div class="line">*</div><div class="line">* <span class="doctag">@param</span> &lt;T&gt; event implementation storing the data for sharing during exchange or parallel coordination of an event.</div><div class="line">*</div><div class="line">* 每个EventHandler对应一个EventProcessor执行者，BatchEventProcessor每次大循环可以获取最高可用序号，并循环调用EventHandler</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">BatchEventProcessor</span>&lt;<span class="title">T</span>&gt;</span></div><div class="line">    <span class="keyword">implements</span> <span class="title">EventProcessor</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> AtomicBoolean running = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</div><div class="line">    <span class="keyword">private</span> ExceptionHandler&lt;? <span class="keyword">super</span> T&gt; exceptionHandler = <span class="keyword">new</span> FatalExceptionHandler();</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> DataProvider&lt;T&gt; dataProvider; <span class="comment">// 数据提供者，默认是RingBuffer，也可替换为自己的数据结构</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> SequenceBarrier sequenceBarrier; <span class="comment">// 默认为ProcessingSequenceBarrier</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt; eventHandler; <span class="comment">// 此EventProcessor对应的用户自定义的EventHandler实现</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Sequence sequence = <span class="keyword">new</span> Sequence(Sequencer.INITIAL_CURSOR_VALUE); <span class="comment">// 当前执行位置</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> TimeoutHandler timeoutHandler;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> BatchStartAware batchStartAware; <span class="comment">// 每次循环取得一批可用事件后，在实际处理前调用</span></div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Construct a &#123;<span class="doctag">@link</span> EventProcessor&#125; that will automatically track the progress by updating its sequence when</div><div class="line">    * the &#123;<span class="doctag">@link</span> EventHandler#onEvent(Object, long, boolean)&#125; method returns.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> dataProvider    to which events are published.</div><div class="line">    * <span class="doctag">@param</span> sequenceBarrier on which it is waiting.</div><div class="line">    * <span class="doctag">@param</span> eventHandler    is the delegate to which events are dispatched.</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">BatchEventProcessor</span><span class="params">(</span></span></div><div class="line">        <span class="keyword">final</span> DataProvider&lt;T&gt; dataProvider,</div><div class="line">        <span class="keyword">final</span> SequenceBarrier sequenceBarrier,</div><div class="line">        <span class="keyword">final</span> EventHandler&lt;? <span class="keyword">super</span> T&gt; eventHandler)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.dataProvider = dataProvider;</div><div class="line">        <span class="keyword">this</span>.sequenceBarrier = sequenceBarrier;</div><div class="line">        <span class="keyword">this</span>.eventHandler = eventHandler;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (eventHandler <span class="keyword">instanceof</span> SequenceReportingEventHandler)</div><div class="line">        &#123;</div><div class="line">            ((SequenceReportingEventHandler&lt;?&gt;) eventHandler).setSequenceCallback(sequence);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        batchStartAware =</div><div class="line">                (eventHandler <span class="keyword">instanceof</span> BatchStartAware) ? (BatchStartAware) eventHandler : <span class="keyword">null</span>;</div><div class="line">        timeoutHandler =</div><div class="line">                (eventHandler <span class="keyword">instanceof</span> TimeoutHandler) ? (TimeoutHandler) eventHandler : <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// ... 省略部分代码</span></div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * It is ok to have another thread rerun this method after a halt().</div><div class="line">    *</div><div class="line">    * <span class="doctag">@throws</span> IllegalStateException if this object instance is already running in a thread</div><div class="line">    */</div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Thread is already running"</span>);</div><div class="line">        &#125;</div><div class="line">        sequenceBarrier.clearAlert();</div><div class="line"></div><div class="line">        notifyStart();</div><div class="line"></div><div class="line">        T event = <span class="keyword">null</span>;</div><div class="line">        <span class="keyword">long</span> nextSequence = sequence.get() + <span class="number">1L</span>;</div><div class="line">        <span class="keyword">try</span></div><div class="line">        &#123;</div><div class="line">            <span class="keyword">while</span> (<span class="keyword">true</span>)</div><div class="line">            &#123;</div><div class="line">                <span class="keyword">try</span></div><div class="line">                &#123;  <span class="comment">// availableSequence返回的是可用的最大值</span></div><div class="line">                    <span class="keyword">final</span> <span class="keyword">long</span> availableSequence = sequenceBarrier.waitFor(nextSequence); <span class="comment">// 使用给定的等待策略去等待下一个序列可用</span></div><div class="line">                    <span class="keyword">if</span> (batchStartAware != <span class="keyword">null</span>)</div><div class="line">                    &#123;</div><div class="line">                        batchStartAware.onBatchStart(availableSequence - nextSequence + <span class="number">1</span>);</div><div class="line">                    &#125;</div><div class="line">                    <span class="comment">// 批处理在此处得以体现</span></div><div class="line">                    <span class="keyword">while</span> (nextSequence &lt;= availableSequence)</div><div class="line">                    &#123;</div><div class="line">                        event = dataProvider.get(nextSequence);</div><div class="line">                        eventHandler.onEvent(event, nextSequence, nextSequence == availableSequence);</div><div class="line">                        nextSequence++;</div><div class="line">                    &#125;</div><div class="line">                    <span class="comment">// eventHandler处理完毕后，更新当前序号</span></div><div class="line">                    sequence.set(availableSequence);</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</div><div class="line">                &#123;</div><div class="line">                    notifyTimeout(sequence.get());</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</div><div class="line">                &#123;</div><div class="line">                    <span class="keyword">if</span> (!running.get())</div><div class="line">                    &#123;</div><div class="line">                        <span class="keyword">break</span>;</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</div><div class="line">                &#123;</div><div class="line">                    exceptionHandler.handleEventException(ex, nextSequence, event);</div><div class="line">                    sequence.set(nextSequence);</div><div class="line">                    nextSequence++;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">finally</span></div><div class="line">        &#123;</div><div class="line">            notifyShutdown();</div><div class="line">            running.set(<span class="keyword">false</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="0x02-2-消费者可用序列屏障-SequenceBarrier"><a href="#0x02-2-消费者可用序列屏障-SequenceBarrier" class="headerlink" title="0x02.2 消费者可用序列屏障-SequenceBarrier"></a>0x02.2 消费者可用序列屏障-SequenceBarrier</h2><p>我们重点看一下SequenceBarrier，可直译为“序列屏障”。SequenceBarrier的主要作用是协调获取消费者可处理到的最大序号，内部持有着生产者和其依赖的消费者序列。它的接口定义如下。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">SequenceBarrier</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Wait for the given sequence to be available for consumption.&lt;br&gt;</div><div class="line">    * 等待指定序列可用</div><div class="line">    * <span class="doctag">@param</span> sequence to wait for</div><div class="line">    * <span class="doctag">@return</span> the sequence up to which is available</div><div class="line">    * <span class="doctag">@throws</span> AlertException      if a status change has occurred for the Disruptor</div><div class="line">    * <span class="doctag">@throws</span> InterruptedException if the thread needs awaking on a condition variable.</div><div class="line">    * <span class="doctag">@throws</span> TimeoutException</div><div class="line">    *</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">long</span> sequence)</span> <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Get the current cursor value that can be read.&lt;br&gt;</div><div class="line">    * 获取当前可读游标值</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> value of the cursor for entries that have been published.</div><div class="line">    *</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">getCursor</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * The current alert status for the barrier.&lt;br&gt;</div><div class="line">    * 当前的alert状态</div><div class="line">    *</div><div class="line">    * <span class="doctag">@return</span> true if in alert otherwise false.</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isAlerted</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Alert the &#123;<span class="doctag">@link</span> EventProcessor&#125;s of a status change and stay in this status until cleared.&lt;br&gt;</div><div class="line">    *</div><div class="line">    * 通知消费者状态变化。当调用EventProcessor#halt()将调用此方法。</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">alert</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Clear the current alert status.&lt;br&gt;</div><div class="line">    * 清楚alert状态</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">clearAlert</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Check if an alert has been raised and throw an &#123;<span class="doctag">@link</span> AlertException&#125; if it has.</div><div class="line">    * 检查是否发生alert，发生将抛出异常</div><div class="line">    * <span class="doctag">@throws</span> AlertException if alert has been raised.</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">checkAlert</span><span class="params">()</span> <span class="keyword">throws</span> AlertException</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>SequenceBarrier实例引用被EventProcessor持有，用于等待并获取可用的消费事件，主要体现在waitFor这个方法。<br>要实现这个功能，需要3点条件：</p>
+<ol>
+<li>知道生产者的位置。</li>
+<li>因为Disruptor支持消费者链，在不同的消费者组之间，要保证后边的消 费者组只有在前消费者组中的消费者都处理完毕后，才能进行处理。</li>
+<li>暂时没有事件可消费，在等待可用消费时，还需要使用某种等待策略进行等待。</li>
+</ol>
+<p>看下SequenceBarrier实现类ProcessingSequenceBarrier的代码是如何实现waitFor方法。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ProcessingSequenceBarrier</span> <span class="keyword">implements</span> <span class="title">SequenceBarrier</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> WaitStrategy waitStrategy; <span class="comment">// 等待可用消费时，指定的等待策略</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Sequence dependentSequence; <span class="comment">// 依赖的上组消费者的序号，如果当前为第一组则为cursorSequence（即生产者发布游标序列），否则使用FixedSequenceGroup封装上组消费者序列</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">boolean</span> alerted = <span class="keyword">false</span>; <span class="comment">// 当触发halt时，将标记alerted为true</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Sequence cursorSequence; <span class="comment">// AbstractSequencer中的cursor引用，记录当前发布者发布的最新位置</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Sequencer sequencer; <span class="comment">// MultiProducerSequencer 或 SingleProducerSequencer</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ProcessingSequenceBarrier</span><span class="params">(</span></span></div><div class="line">        <span class="keyword">final</span> Sequencer sequencer,</div><div class="line">        <span class="keyword">final</span> WaitStrategy waitStrategy,</div><div class="line">        <span class="keyword">final</span> Sequence cursorSequence,</div><div class="line">        <span class="keyword">final</span> Sequence[] dependentSequences)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.sequencer = sequencer;</div><div class="line">        <span class="keyword">this</span>.waitStrategy = waitStrategy;</div><div class="line">        <span class="keyword">this</span>.cursorSequence = cursorSequence;</div><div class="line">        <span class="keyword">if</span> (<span class="number">0</span> == dependentSequences.length) <span class="comment">// 依赖的上一组序列长度，第一次是0</span></div><div class="line">        &#123;</div><div class="line">            dependentSequence = cursorSequence;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> <span class="comment">// 将上一组序列数组复制成新数组保存，引用不变</span></div><div class="line">        &#123;</div><div class="line">            dependentSequence = <span class="keyword">new</span> FixedSequenceGroup(dependentSequences);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> sequence)</span></span></div><div class="line">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException</div><div class="line">    &#123;</div><div class="line">        <span class="comment">// 检查是否停止服务</span></div><div class="line">        checkAlert();</div><div class="line">        <span class="comment">// 获取最大可用序号 sequence为给定序号，一般为当前序号+1，cursorSequence记录生产者最新位置，</span></div><div class="line">        <span class="keyword">long</span> availableSequence = waitStrategy.waitFor(sequence, cursorSequence, dependentSequence, <span class="keyword">this</span>);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (availableSequence &lt; sequence)</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">return</span> availableSequence;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">// 返回已发布最高的序列值，将对每个序号进行校验</span></div><div class="line">        <span class="keyword">return</span> sequencer.getHighestPublishedSequence(sequence, availableSequence);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// ... </span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="0x02-3-该用什么姿势等待可用事件-WaitStrategy"><a href="#0x02-3-该用什么姿势等待可用事件-WaitStrategy" class="headerlink" title="0x02.3 该用什么姿势等待可用事件-WaitStrategy"></a>0x02.3 该用什么姿势等待可用事件-WaitStrategy</h2><p>看来实际的等待操作还是在WaitStrategy#waitFor完成的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// WaitStrategy.java</span></div><div class="line"><span class="comment">/**</span></div><div class="line">* Strategy employed for making &#123;<span class="doctag">@link</span> EventProcessor&#125;s wait on a cursor &#123;<span class="doctag">@link</span> Sequence&#125;. &lt;br&gt;</div><div class="line">* 消费者等待可用事件的策略</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">WaitStrategy</span></span></div><div class="line">&#123;</div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Wait for the given sequence to be available.  It is possible for this method to return a value</div><div class="line">    * less than the sequence number supplied depending on the implementation of the WaitStrategy.  A common</div><div class="line">    * use for this is to signal a timeout.  Any EventProcessor that is using a WaitStrategy to get notifications</div><div class="line">    * about message becoming available should remember to handle this case.  The &#123;<span class="doctag">@link</span> BatchEventProcessor&#125; explicitly</div><div class="line">    * handles this case and will signal a timeout if required.</div><div class="line">    *</div><div class="line">    * <span class="doctag">@param</span> sequence          to be waited on. 给定序号</div><div class="line">    * <span class="doctag">@param</span> cursor            the main sequence from ringbuffer. Wait/notify strategies will</div><div class="line">    *                          need this as it's the only sequence that is also notified upon update. 生产者游标</div><div class="line">    * <span class="doctag">@param</span> dependentSequence on which to wait. 依赖的序列，一般是上一个消费者组序列的FixedSequenceGroup封装。如果消费者是第一组，则为cursor。</div><div class="line">    * <span class="doctag">@param</span> barrier          the processor is waiting on. 在等待时需要判断是否对消费者有alert操作</div><div class="line">    * <span class="doctag">@return</span> the sequence that is available which may be greater than the requested sequence.</div><div class="line">    * <span class="doctag">@throws</span> AlertException      if the status of the Disruptor has changed.</div><div class="line">    * <span class="doctag">@throws</span> InterruptedException if the thread is interrupted.</div><div class="line">    * <span class="doctag">@throws</span> TimeoutException</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">long</span> sequence, Sequence cursor, Sequence dependentSequence, SequenceBarrier barrier)</span></span></div><div class="line">        <span class="keyword">throws</span> AlertException, InterruptedException, TimeoutException;</div><div class="line"></div><div class="line">    <span class="comment">/**</span></div><div class="line">    * Implementations should signal the waiting &#123;<span class="doctag">@link</span> EventProcessor&#125;s that the cursor has advanced. &lt;br&gt;</div><div class="line">    * 当生产者发布新事件后，将通知等待的EventProcessor。当用锁机制时才会包含相应逻辑。</div><div class="line">    */</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">signalAllWhenBlocking</span><span class="params">()</span></span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line">在各种等待策略中，我们选取阻塞策略研究。</div><div class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">BlockingWaitStrategy</span> <span class="keyword">implements</span> <span class="title">WaitStrategy</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Lock lock = <span class="keyword">new</span> ReentrantLock();</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Condition processorNotifyCondition = lock.newCondition();</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">waitFor</span><span class="params">(<span class="keyword">long</span> sequence, Sequence cursorSequence, Sequence dependentSequence, SequenceBarrier barrier)</span></span></div><div class="line">        <span class="keyword">throws</span> AlertException, InterruptedException</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">long</span> availableSequence;</div><div class="line">        <span class="keyword">if</span> (cursorSequence.get() &lt; sequence) <span class="comment">// 当前游标小于给定序号，也就是无可用事件</span></div><div class="line">        &#123;</div><div class="line">            lock.lock();</div><div class="line">            <span class="keyword">try</span></div><div class="line">            &#123;</div><div class="line">                <span class="keyword">while</span> (cursorSequence.get() &lt; sequence) <span class="comment">// 当给定的序号大于生产者游标序号时，进行等待</span></div><div class="line">                &#123;</div><div class="line">                    barrier.checkAlert();</div><div class="line">                    <span class="comment">// 循环等待，在Sequencer中publish进行唤醒；等待消费时也会在循环中定时唤醒。</span></div><div class="line">                    <span class="comment">// 循环等待的原因，是要检查alert状态。如果不检查将导致不能关闭Disruptor。</span></div><div class="line">                    processorNotifyCondition.await();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">finally</span></div><div class="line">            &#123;</div><div class="line">                lock.unlock();</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"><span class="comment">// 给定序号大于上一个消费者组最慢消费者（如当前消费者为第一组则和生产者游标序号比较）序号时，需要等待。不能超前消费上一个消费者组未消费完毕的事件。</span></div><div class="line"><span class="comment">// 那么为什么这里没有锁呢？可以想一下此时的场景，代码运行至此，已能保证生产者有新事件，如果进入循环，说明上一组消费者还未消费完毕。</span></div><div class="line"><span class="comment">// 而通常我们的消费者都是较快完成任务的，所以这里才会考虑使用Busy Spin的方式等待上一组消费者完成消费。</span></div><div class="line">        <span class="keyword">while</span> ((availableSequence = dependentSequence.get()) &lt; sequence)</div><div class="line">        &#123;</div><div class="line">            barrier.checkAlert();</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">return</span> availableSequence;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">signalAllWhenBlocking</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        lock.lock();</div><div class="line">        <span class="keyword">try</span></div><div class="line">        &#123;</div><div class="line">            processorNotifyCondition.signalAll();</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">finally</span></div><div class="line">        &#123;</div><div class="line">            lock.unlock();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> <span class="string">"BlockingWaitStrategy&#123;"</span> +</div><div class="line">            <span class="string">"processorNotifyCondition="</span> + processorNotifyCondition +</div><div class="line">            <span class="string">'&#125;'</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>阻塞等待策略使用Lock+Condition的方式等待生产者生产可用事件，而使用Busy Spin的方式等待可能出现的上一个消费者组未消费完成的情况。<br>这里给我们一个提示，<strong>在构建低延迟系统时，因为锁的性能消耗，尽量不要使用锁。如果必须要用锁，也要把锁粒度调到最小。</strong><br>另外，消费者在等待可用消费事件时，会循环调用barrier.checkAlert()，再去调用锁的条件等待，等待可用消费事件。<br>有三个地方可以唤醒等待中的消费线程。两种是在Sequencer实现类中，一是有可用事件发布，通知消费线程继续消费；二是在调用next()获取可用的RingBuffer槽位时，发现RingBuffer满了（生产者速度大于消费者，导致生产者没有可用位置发布事件），将唤醒消费者线程，此功能在3.3.5版本新增（Resignal any waiting threads when trying to publish to a full ring buffer ）。开始我百思不得，为什么要在buffer满了的时候不断唤醒消费者线程，直到看到这个<a href="https://github.com/LMAX-Exchange/disruptor/issues/138" target="_blank" rel="external">issue</a>才明白。大意是在log4j2中使用Disruptor时发生了死锁，为了避免在发布事件时，由于某种原因导致没有通知到消费者，在生产者尝试往一个已满的buffer发布数据时，就会再通知消费者进行消费。而<a href="https://issues.apache.org/jira/browse/LOG4J2-1518" target="_blank" rel="external">这个bug</a>最终也被Log4j认领，与Disruptor无关。Disruptor这里的再次通知也是为了更加保险。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//*ProducerSequencer.java</span></div><div class="line"><span class="comment">// next(n)中的代码</span></div><div class="line"><span class="comment">// 由于慢消费者，无可用坑位，只有当消费者消费，向前移动后，才能跳出循环</span></div><div class="line"><span class="comment">// 由于外层判断使用的是缓存的消费者序列最小值，这里使用真实的消费者序列进行判断，并将最新结果在跳出while循环之后进行缓存</span></div><div class="line"><span class="keyword">while</span> (wrapPoint &gt; (minSequence = Util.getMinimumSequence(gatingSequences, nextValue)))</div><div class="line">&#123;  <span class="comment">// 唤醒等待的消费者，正常情况下并无意义，只是为了避免极少数情况下未知原因导致的发布时锁机制出现异常，未通知到消费者</span></div><div class="line">    waitStrategy.signalAllWhenBlocking();</div><div class="line">    LockSupport.parkNanos(<span class="number">1L</span>); <span class="comment">// <span class="doctag">TODO:</span> Use waitStrategy to spin?</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>还有一种唤醒就是关闭Disruptor时，消费者关闭前将会处理完当前批次数据（并非RingBuffer的所有数据，而是此次循环取出的最大可用序号以下的所有未处理数据），如果消费者线程当前在等待状态，将被唤醒并终结。<br>BatchEventProcessor就讲到这。</p>
+<h2 id="0x02-4-使用WorkProcessor多线程处理事件"><a href="#0x02-4-使用WorkProcessor多线程处理事件" class="headerlink" title="0x02.4 使用WorkProcessor多线程处理事件"></a>0x02.4 使用WorkProcessor多线程处理事件</h2><p>下面说一说WorkHandler+WorkProcessor。<br>上面讲过，使用EventHandler+BatchEventProcessor这种方式类似JMS的发布订阅，同一个事件会被不同线程的EventHandler并行消费。那么，如果单线程处理能力不足，想多线程处理同一主题下的不同事件该怎么办呢？这种方式就类似JMS的点到点模式，多个消费者可以监听同一个队列，谁先拿到就归谁处理。<br>在Disruptor中使用WorkHandler+WorkProcessor实现以上功能。当需要使用这种模式，可在设置Disruptor消费者时，通过使用handleEventsWithWorkerPool和thenHandleEventsWithWorkerPool设置消费链。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">disruptor</div><div class="line">    .handleEventsWithWorkerPool(</div><div class="line">      <span class="keyword">new</span> WorkHandler[]&#123;</div><div class="line">          journalHandler,</div><div class="line">          journalHandler,</div><div class="line">          journalHandler</div><div class="line">      &#125;</div><div class="line">    )</div><div class="line">    .thenHandleEventsWithWorkerPool(resultHandler);</div></pre></td></tr></table></figure></p>
+<p>先看下相关的源码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Disruptor</span></div><div class="line"><span class="function"><span class="keyword">public</span> EventHandlerGroup&lt;T&gt; <span class="title">handleEventsWithWorkerPool</span><span class="params">(<span class="keyword">final</span> WorkHandler&lt;T&gt;... workHandlers)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> createWorkerPool(<span class="keyword">new</span> Sequence[<span class="number">0</span>], workHandlers);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function">EventHandlerGroup&lt;T&gt; <span class="title">createWorkerPool</span><span class="params">(</span></span></div><div class="line">    <span class="keyword">final</span> Sequence[] barrierSequences, <span class="keyword">final</span> WorkHandler&lt;? <span class="keyword">super</span> T&gt;[] workHandlers)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">final</span> SequenceBarrier sequenceBarrier = ringBuffer.newBarrier(barrierSequences);</div><div class="line">    <span class="keyword">final</span> WorkerPool&lt;T&gt; workerPool = <span class="keyword">new</span> WorkerPool&lt;T&gt;(ringBuffer, sequenceBarrier, exceptionHandler, workHandlers);</div><div class="line"></div><div class="line">    consumerRepository.add(workerPool, sequenceBarrier);</div><div class="line"></div><div class="line">    <span class="keyword">final</span> Sequence[] workerSequences = workerPool.getWorkerSequences();</div><div class="line"></div><div class="line">    updateGatingSequencesForNextInChain(barrierSequences, workerSequences);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> EventHandlerGroup&lt;T&gt;(<span class="keyword">this</span>, consumerRepository, workerSequences);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// WorkerPool.java WorkerPool构造方法</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">WorkerPool</span><span class="params">(</span></span></div><div class="line">    <span class="keyword">final</span> RingBuffer&lt;T&gt; ringBuffer,</div><div class="line">    <span class="keyword">final</span> SequenceBarrier sequenceBarrier,</div><div class="line">    <span class="keyword">final</span> ExceptionHandler&lt;? <span class="keyword">super</span> T&gt; exceptionHandler,</div><div class="line">    <span class="keyword">final</span> WorkHandler&lt;? <span class="keyword">super</span> T&gt;... workHandlers)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">this</span>.ringBuffer = ringBuffer;</div><div class="line">    <span class="keyword">final</span> <span class="keyword">int</span> numWorkers = workHandlers.length;</div><div class="line">    workProcessors = <span class="keyword">new</span> WorkProcessor[numWorkers];</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numWorkers; i++)</div><div class="line">    &#123;</div><div class="line">        workProcessors[i] = <span class="keyword">new</span> WorkProcessor&lt;T&gt;( <span class="comment">// 为每个WorkHandler新建一个WorkProcessor</span></div><div class="line">            ringBuffer,</div><div class="line">            sequenceBarrier,</div><div class="line">            workHandlers[i],</div><div class="line">            exceptionHandler,</div><div class="line">            workSequence);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在使用线程池处理事件时，与单线程处理相比，最大的不同在于新增了一个WorkerPool。WorkerPool用于管理一组WorkProcessor，它的属性、方法如下。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-31c19bfeaf326562.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>WorkProcessor的原理和BatchEventProcessor类似，只是多了workSequence用来保存同组共用的处理序列。在更新workSequence时，涉及多线程操作，所以使用CAS进行更新。<br>WorkProcessor的run()方法如下。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">if</span> (!running.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Thread is already running"</span>);</div><div class="line">    &#125;</div><div class="line">    sequenceBarrier.clearAlert();</div><div class="line"></div><div class="line">    notifyStart();</div><div class="line"></div><div class="line">    <span class="keyword">boolean</span> processedSequence = <span class="keyword">true</span>;</div><div class="line">    <span class="keyword">long</span> cachedAvailableSequence = Long.MIN_VALUE;</div><div class="line">    <span class="keyword">long</span> nextSequence = sequence.get();</div><div class="line">    T event = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">try</span></div><div class="line">        &#123;</div><div class="line">            <span class="comment">// if previous sequence was processed - fetch the next sequence and set</span></div><div class="line">            <span class="comment">// that we have successfully processed the previous sequence</span></div><div class="line">            <span class="comment">// typically, this will be true</span></div><div class="line">            <span class="comment">// this prevents the sequence getting too far forward if an exception</span></div><div class="line">            <span class="comment">// is thrown from the WorkHandler</span></div><div class="line">            <span class="keyword">if</span> (processedSequence) <span class="comment">// 表示nextSequence序号的处理情况（不区分正常或是异常处理）。只有处理过，才能申请下一个序号。</span></div><div class="line">            &#123;</div><div class="line">                processedSequence = <span class="keyword">false</span>;</div><div class="line">                <span class="keyword">do</span></div><div class="line">                &#123;</div><div class="line">                    <span class="comment">// 同组中多个消费线程有可能会争抢一个序号，使用CAS避免使用锁。</span></div><div class="line">                    <span class="comment">// 同一组使用一个workSequence，WorkProcessor不断申请下一个可用序号，对workSequence设置成功才会实际消费。</span></div><div class="line">                    nextSequence = workSequence.get() + <span class="number">1L</span>;</div><div class="line">                    sequence.set(nextSequence - <span class="number">1L</span>);</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">while</span> (!workSequence.compareAndSet(nextSequence - <span class="number">1L</span>, nextSequence));</div><div class="line">            &#125;</div><div class="line">            <span class="comment">// 缓存的可用序号比要处理的序号大，才能进行处理</span></div><div class="line">            <span class="keyword">if</span> (cachedAvailableSequence &gt;= nextSequence)</div><div class="line">            &#123;</div><div class="line">                event = ringBuffer.get(nextSequence);</div><div class="line">                workHandler.onEvent(event);</div><div class="line">                processedSequence = <span class="keyword">true</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">else</span> <span class="comment">// 更新缓存的可用序列。这个cachedAvailableSequence只用在WorkProcessor实例内，不同实例的缓存可能是不一样的</span></div><div class="line">            &#123;     <span class="comment">// 和单线程模式类似，返回的也是最大可用序号</span></div><div class="line">                cachedAvailableSequence = sequenceBarrier.waitFor(nextSequence);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">catch</span> (<span class="keyword">final</span> TimeoutException e)</div><div class="line">        &#123;</div><div class="line">            notifyTimeout(sequence.get());</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">catch</span> (<span class="keyword">final</span> AlertException ex)</div><div class="line">        &#123;</div><div class="line">            <span class="keyword">if</span> (!running.get())</div><div class="line">            &#123;</div><div class="line">                <span class="keyword">break</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable ex)</div><div class="line">        &#123;</div><div class="line">            <span class="comment">// handle, mark as processed, unless the exception handler threw an exception</span></div><div class="line">            exceptionHandler.handleEventException(ex, nextSequence, event);</div><div class="line">            processedSequence = <span class="keyword">true</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    notifyShutdown();</div><div class="line"></div><div class="line">    running.set(<span class="keyword">false</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>代码逻辑和BatchEventProcessor类似，就不再赘述啦。<br>还有一点需要留意，Disruptor通过EventHandlerGroup代表一个消费者组，就表示之前那四张图中一个水平线上的消费者组。这样不同的消费者组之间不必关心各自的实现，从而可以实现更加复杂和灵活的消费链，即依赖图表。</p>
+<h1 id="0x03-消费者小结"><a href="#0x03-消费者小结" class="headerlink" title="0x03 消费者小结"></a>0x03 消费者小结</h1><p>从小语文老师就教育我们写作文要总结，好习惯不能忘~<br>本文主要探讨了Disruptor消费者内部概要实现，重点阐述了BatchEventProcessor、WorkProcess的消费代码原理。同时省略了超时通知、开始和结束通知、异常控制等内容，并非不重要，而只是尽量言简意赅，达到抛砖引玉的目的。<br>BatchEventProcessor主要用于处理单线程并行任务，同一消费者组的不同消费者会接收相同的事件，并在所有事件处理完毕后进入下一消费者组进行处理（是不是类似JUC里的Phaser、CyclicBarrier或CountDownLatch呢）。WorkProcessor通过WorkerPool管理多个WorkProcessor，达到多线程处理事件的目的，同一消费者组的多个WorkProcessor不会处理同一个事件。通过选择不同的WaitStragegy实现，可以控制消费者在没有可用事件处理时的等待策略。<br>好啦，有关Disruptor消费者的分享就到这。<br>欢迎大家留言讨论，一同探讨，一同进步。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/" rel="next" title="探究SpringJMS+ActiveMQ消息阻塞之谜">
+                <i class="fa fa-chevron-left"></i> 探究SpringJMS+ActiveMQ消息阻塞之谜
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/" rel="prev" title="解读Disruptor系列--解读源码（4）之RingBuffer">
+                解读Disruptor系列--解读源码（4）之RingBuffer <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0x00-概念回顾"><span class="nav-number">1.</span> <span class="nav-text">0x00 概念回顾</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x01-EventProcessor接口概览"><span class="nav-number">2.</span> <span class="nav-text">0x01 EventProcessor接口概览</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x02-消费技术实现"><span class="nav-number">3.</span> <span class="nav-text">0x02 消费技术实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-1-使用BatchEventProcessor单线程批处理事件"><span class="nav-number">3.1.</span> <span class="nav-text">0x02.1 使用BatchEventProcessor单线程批处理事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-2-消费者可用序列屏障-SequenceBarrier"><span class="nav-number">3.2.</span> <span class="nav-text">0x02.2 消费者可用序列屏障-SequenceBarrier</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-3-该用什么姿势等待可用事件-WaitStrategy"><span class="nav-number">3.3.</span> <span class="nav-text">0x02.3 该用什么姿势等待可用事件-WaitStrategy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-4-使用WorkProcessor多线程处理事件"><span class="nav-number">3.4.</span> <span class="nav-text">0x02.4 使用WorkProcessor多线程处理事件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-消费者小结"><span class="nav-number">4.</span> <span class="nav-text">0x03 消费者小结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/';
+          this.page.identifier = '2017/09/29/解读Disruptor系列-解读源码（3）之消费者/';
+          this.page.title = '解读Disruptor系列--解读源码（3）之消费者';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

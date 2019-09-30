@@ -1,0 +1,874 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="本文是笔者在研究Disruptor过程中对Disruptor官方介绍与入门指南的翻译，有些部分做了适当编辑和增减。官方介绍原文地址：https://github.com/LMAX-Exchange/disruptor/wiki/Introduction官方入门指南：https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started 简介理">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列-Disruptor官方介绍与入门指南">
+<meta property="og:url" content="http://coderjerry.com/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="本文是笔者在研究Disruptor过程中对Disruptor官方介绍与入门指南的翻译，有些部分做了适当编辑和增减。官方介绍原文地址：https://github.com/LMAX-Exchange/disruptor/wiki/Introduction官方入门指南：https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started 简介理">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-b1eb98a412a67268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.382Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列-Disruptor官方介绍与入门指南">
+<meta name="twitter:description" content="本文是笔者在研究Disruptor过程中对Disruptor官方介绍与入门指南的翻译，有些部分做了适当编辑和增减。官方介绍原文地址：https://github.com/LMAX-Exchange/disruptor/wiki/Introduction官方入门指南：https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started 简介理">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/931112-b1eb98a412a67268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/"/>
+
+
+
+
+
+  <title>解读Disruptor系列-Disruptor官方介绍与入门指南 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列-Disruptor官方介绍与入门指南</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-25T18:13:05+08:00">
+                2017-08-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文是笔者在研究Disruptor过程中对Disruptor官方介绍与入门指南的翻译，有些部分做了适当编辑和增减。<br>官方介绍原文地址：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Introduction" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor/wiki/Introduction</a><br>官方入门指南：<a href="https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor/wiki/Getting-Started</a></p>
+<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>理解Disruptor的最佳方式是，将其与一些容易理解和目的相似的东西比较。这里的参照物就是java里的阻塞队列（BlockingQueue）。<br>与BlockingQueue的异同：<br>同：目的相同，都是为了在同一进程的线程间传输数据。<br>异：对消费者多播事件；预分配事件内存；可选无锁。</p>
+<h2 id="核心概念"><a href="#核心概念" class="headerlink" title="核心概念"></a>核心概念</h2><ul>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/RingBuffer.java" target="_blank" rel="external">Ring Buffer</a> : 曾经的核心。自从3.0以上，环形缓冲器只作为Disruptor存储和更新数据（事件）的容器。对于一些高级用法，可以完全替换为用户提供的容器。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/Sequence.java" target="_blank" rel="external">Sequence</a>：Disruptor使用Sequence作为一种确定特定组件位置的方法。每个消费者（EventProcessor）都维护一个Sequence，Disruptor自己也是一样。大部分并发代码以来这些Sequence值的移动，因此Sequence支持AtomicLong的当前许多特性。事实上，两者唯一的区别是Sequence包含了附加功能来防止Sequence和其他值的伪共享。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/Sequencer.java" target="_blank" rel="external">Sequencer</a>：Disruptor的真正核心。此接口的两个实现（单生产者和多生产者）都实现了用于在生产者和消费者间快速准确传递数据的并发算法。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/SequenceBarrier.java" target="_blank" rel="external">Sequence Barrier</a>：由Sequencer产生，持有Sequencer的主要发布Sequence和任意独立消费者的Sequence的索引。它包含判断是否有可供消费者处理的可用事件的逻辑。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/WaitStrategy.java" target="_blank" rel="external">Wait Strategy</a>：等待策略决定了一个消费者如何等待生产者发布到Disruptor的事件。</li>
+<li>Event：生产者传递给消费者的数据单元。用户自定义。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/EventProcessor.java" target="_blank" rel="external">EventProcessor</a>：处理Disruptor事件的主要循环，拥有消费者的Sequence。有一个BatchEventProcessor包含了一个事件循环的高效实现，会在事件可用时回调用户提供的EventHandler接口实现。</li>
+<li><a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/main/java/com/lmax/disruptor/EventHandler.java" target="_blank" rel="external">EventHandler</a>：用户实现接口，代表Disruptor的一个消费者。</li>
+<li>Producer：用户调用Disruptor进行入队的代码。在框架中没有代码表示。</li>
+</ul>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-b1eb98a412a67268.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="多播事件"><a href="#多播事件" class="headerlink" title="多播事件"></a>多播事件</h2><p>这是queue和Disruptor最大的行为区别。队列中的一个事件只能被一个消费者消费，而Disruptor中的时间会发布给所有消费者。这是由于Disruptor意图处理同一数据的独立并行处理操作（译注：类似JMS的topic模式）。比如LMAX中同一数据需要进行记录日志、复制和业务逻辑操作。当然，在Disruptor中同时并行处理不同事件可以使用WorkerPool（译注：类似JMS的queue模式中的多消费者实现）。但需要注意的是，由于这种特性并非是Disruptor的首要工作，所以使用WorkerPool可能并不是最高效的做法。<br>查看上图，三个消费者JournalConsumer、ReplicationConsumer和ApplicationConsumer将会以相同顺序接收Disruptor所有可用消息。这实现了这些消费者的并行工作。</p>
+<h2 id="消费者依赖图"><a href="#消费者依赖图" class="headerlink" title="消费者依赖图"></a>消费者依赖图</h2><p>为了支持并发处理的真实世界应用，很有必要支持消费者间的协调工作。回顾上图，在日志记录和复制消费者完成工作前，有必要阻止业务逻辑消费者的进一步工作。我们称这个概念为gating，更准确的说是这种行为的超集称为gating。Gating发生在两个地方：第一用来保证生产者不能超过消费者。这通过调用RingBuffer.addGatingConsumers()把相关消费者添加到Disruptor实现。第二，先前提到的情况是通过从必须首先完成其处理的组件构造包含序列的SequenceBarrier来实现的。<br>回顾图1，有三个消费者监听RingBuffer的事件。在这个例子中，有一个依赖图。ApplicationConsumer依赖JournalConsumer和ReplicationConsumer。这意味着JournalConsumer和ReplicationConsumer可以相互并行运行。依赖关系可以从ApplicationConsumer的SequenceBarrier和JournalConsumer及ReplicationConsumer的Sequence观察到。同时引起注意的是Sequencer和下游消费者的关系。它的一个角色是保证发布不会环绕RingBuffer。为了做到这点，下游消费者的Sequence不能小于RingBuffer的Sequence。然而，使用依赖图会发生一个有趣的优化。由于ApplicationConsumer Sequence保证小于等于JournalConsumer和ReplicationConsumer（由依赖关系保证），Sequencer只需要观察ApplicationConsumer的Sequence。从广义上来说，Sequencer只需要关注依赖树种叶子节点的消费者Sequence。</p>
+<h2 id="事件预分配"><a href="#事件预分配" class="headerlink" title="事件预分配"></a>事件预分配</h2><p>Disruptor的一个目标是可以用于低延迟环境中。在低延迟系统中，有必要减少或消除内存分配。在Java系统中，目标是减少由于垃圾回收造成的停顿次数（在低延迟的C/C++系统中，重内存分配会由于内存分配器的征用也可能导致问题）。<br>为了支持这个目标，用户可以预分配Disruptor中事件的存储。用户提供的EventFactory会在Disruptor中RingBuffer每个条目构建时调用。当发布新数据到Disruptor时，有API供用户调用来持有构建出的对象，这样可以调用对象的方法或更新对象属性。在正确实现下，Disruptor保证这些操作操作是并发安全的。</p>
+<h2 id="可选的无锁"><a href="#可选的无锁" class="headerlink" title="可选的无锁"></a>可选的无锁</h2><p>对低延迟的渴望造就的另一个实现细节是无锁算法在Disruptor中的大量使用。所有内存可见性和正确性保证使用内存屏障和/或CAS操作实现。真正使用锁的场景只有一个，那就是使用BlockingWatiStrategy。这样做只为了使用Condition让消费线程可以在等待新事件到达前进行park操作。许多低延迟系统使用忙等待(busy-wait)来避免使用Condition可能导致的抖动，然而一些系统的忙等待操作会导致性能的急剧下降，尤其是CPU资源被严重制约时。比方说在虚拟环境下的web服务器。</p>
+<h1 id="入门指南"><a href="#入门指南" class="headerlink" title="入门指南"></a>入门指南</h1><h2 id="基本的事件生产和消费"><a href="#基本的事件生产和消费" class="headerlink" title="基本的事件生产和消费"></a>基本的事件生产和消费</h2><p>从简单的事件开始：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEvent</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">long</span> value;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">set</span><span class="params">(<span class="keyword">long</span> value)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.value = value;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>为了让Disruptor能够预分配事件，我们需要提供一个EventFactory完成构建：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventFactory;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventFactory</span> <span class="keyword">implements</span> <span class="title">EventFactory</span>&lt;<span class="title">LongEvent</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> LongEvent <span class="title">newInstance</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> LongEvent();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>事件定义好后，需要创建消费者处理这些事件。这里只做简单的打印：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventHandler;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventHandler</span> <span class="keyword">implements</span> <span class="title">EventHandler</span>&lt;<span class="title">LongEvent</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(LongEvent event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span></span></div><div class="line">    &#123;</div><div class="line">        System.out.println(<span class="string">"Event: "</span> + event);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>我们还需要一个事件的生产源，举个例子，假定数据是来自某种I/O设备，如网络或文件的字节缓冲(ByteBuffer)。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.RingBuffer;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventProducer</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> RingBuffer&lt;LongEvent&gt; ringBuffer;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LongEventProducer</span><span class="params">(RingBuffer&lt;LongEvent&gt; ringBuffer)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.ringBuffer = ringBuffer;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onData</span><span class="params">(ByteBuffer bb)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">long</span> sequence = ringBuffer.next();  <span class="comment">// Grab the next sequence</span></div><div class="line">        <span class="keyword">try</span></div><div class="line">        &#123;</div><div class="line">            LongEvent event = ringBuffer.get(sequence); <span class="comment">// Get the entry in the Disruptor</span></div><div class="line">                                                        <span class="comment">// for the sequence</span></div><div class="line">            event.set(bb.getLong(<span class="number">0</span>));  <span class="comment">// Fill with data</span></div><div class="line">        &#125;</div><div class="line">        <span class="keyword">finally</span></div><div class="line">        &#123;</div><div class="line">            ringBuffer.publish(sequence);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以发现，相比使用简单的queue，事件的发布更具有相关性。这是由于需要事件预分配。事件发布需要（最低）2阶段方式，先声明环形缓冲器中的槽位，再发布可用数据。同时也需要把发布过程使用try/finally块包裹起来。如果声明了环形缓冲的一个槽位（通过调用RingBuffer.next()）然后必须发布这个序列。如果没有这么做，会导致Disruptor的状态损坏(corruption)。特别地，在多生产者的情况下，这将会导致消费者阻塞，只能通过重启解决。</p>
+<h3 id="使用3-x版本的Translator"><a href="#使用3-x版本的Translator" class="headerlink" title="使用3.x版本的Translator"></a>使用3.x版本的Translator</h3><p>Disruptor3.0提供了一种富Lambda风格的API，旨在帮助开发者屏蔽直接操作RingBuffer的复杂性，所以3.0以上版本发布消息更好的办法是通过事件发布者(Event Publisher)或事件翻译器(Event Translator)API。如下<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.RingBuffer;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventTranslatorOneArg;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventProducerWithTranslator</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> RingBuffer&lt;LongEvent&gt; ringBuffer;</div><div class="line">   </div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">LongEventProducerWithTranslator</span><span class="params">(RingBuffer&lt;LongEvent&gt; ringBuffer)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.ringBuffer = ringBuffer;</div><div class="line">    &#125;</div><div class="line">   </div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> EventTranslatorOneArg&lt;LongEvent, ByteBuffer&gt; TRANSLATOR =</div><div class="line">        <span class="keyword">new</span> EventTranslatorOneArg&lt;LongEvent, ByteBuffer&gt;()</div><div class="line">        &#123;</div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">translateTo</span><span class="params">(LongEvent event, <span class="keyword">long</span> sequence, ByteBuffer bb)</span></span></div><div class="line">            &#123;</div><div class="line">                event.set(bb.getLong(<span class="number">0</span>));</div><div class="line">            &#125;</div><div class="line">        &#125;;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onData</span><span class="params">(ByteBuffer bb)</span></span></div><div class="line">    &#123;</div><div class="line">        ringBuffer.publishEvent(TRANSLATOR, bb);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这种方法另一个好处是翻译器代码可以放到一个单独的类中，以便于更容易进行单元测试。Disruptor提供了一些用于翻译器的不同的接口（EventTranslator，EventTranslatorOneArg，EventTranslatorTwoArg，等）。这样做的原因是，允许翻译器表示为静态类，或以非捕获lambda表达式（使用java8时）作为翻译方法参数，通过调用RingBuffer上的翻译器进行传递。<br>最后一步是把上面这些步骤统一到一起。可以手工把这些组件都组装到一起，但还是有点复杂，所以引入了DSL来简化构建。尽管通过DSL的方式不能使用有些复杂选项，但这种方式还是适合绝大多数场景。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.dsl.Disruptor;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.RingBuffer;</div><div class="line"><span class="keyword">import</span> java.nio.ByteBuffer;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executor;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventMain</span></span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// Executor that will be used to construct new threads for consumers</span></div><div class="line">        Executor executor = Executors.newCachedThreadPool();</div><div class="line"></div><div class="line">        <span class="comment">// The factory for the event</span></div><div class="line">        LongEventFactory factory = <span class="keyword">new</span> LongEventFactory();</div><div class="line"></div><div class="line">        <span class="comment">// Specify the size of the ring buffer, must be power of 2.</span></div><div class="line">        <span class="keyword">int</span> bufferSize = <span class="number">1024</span>;</div><div class="line"></div><div class="line">        <span class="comment">// Construct the Disruptor</span></div><div class="line">        Disruptor&lt;LongEvent&gt; disruptor = <span class="keyword">new</span> Disruptor&lt;&gt;(factory, bufferSize, executor);</div><div class="line"></div><div class="line">        <span class="comment">// Connect the handler</span></div><div class="line">        disruptor.handleEventsWith(<span class="keyword">new</span> LongEventHandler());</div><div class="line"></div><div class="line">        <span class="comment">// Start the Disruptor, starts all threads running</span></div><div class="line">        disruptor.start();</div><div class="line"></div><div class="line">        <span class="comment">// Get the ring buffer from the Disruptor to be used for publishing.</span></div><div class="line">        RingBuffer&lt;LongEvent&gt; ringBuffer = disruptor.getRingBuffer();</div><div class="line"></div><div class="line">        LongEventProducer producer = <span class="keyword">new</span> LongEventProducer(ringBuffer);</div><div class="line"></div><div class="line">        ByteBuffer bb = ByteBuffer.allocate(<span class="number">8</span>);</div><div class="line">        <span class="keyword">for</span> (<span class="keyword">long</span> l = <span class="number">0</span>; <span class="keyword">true</span>; l++)</div><div class="line">        &#123;</div><div class="line">            bb.putLong(<span class="number">0</span>, l);</div><div class="line">            producer.onData(bb);</div><div class="line">            Thread.sleep(<span class="number">1000</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h3 id="使用Java8"><a href="#使用Java8" class="headerlink" title="使用Java8"></a>使用Java8</h3><p>Disruptor API的设计影响之一是Java 8将依靠功能接口的概念作为Java Lambdas的类型声明。 Disruptor API中的大多数接口定义符合功能接口的要求，因此可以使用Lambda而不是自定义类，这样可以减少所需的重复代码(boiler place)。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.dsl.Disruptor;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.RingBuffer;</div><div class="line"><span class="keyword">import</span> java.nio.ByteBuffer;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executor;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventMain</span></span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// Executor that will be used to construct new threads for consumers</span></div><div class="line">        Executor executor = Executors.newCachedThreadPool();</div><div class="line"></div><div class="line">        <span class="comment">// Specify the size of the ring buffer, must be power of 2.</span></div><div class="line">        <span class="keyword">int</span> bufferSize = <span class="number">1024</span>;</div><div class="line"></div><div class="line">        <span class="comment">// Construct the Disruptor</span></div><div class="line">        Disruptor&lt;LongEvent&gt; disruptor = <span class="keyword">new</span> Disruptor&lt;&gt;(LongEvent::<span class="keyword">new</span>, bufferSize, executor);</div><div class="line"></div><div class="line">        <span class="comment">// Connect the handler</span></div><div class="line">        disruptor.handleEventsWith((event, sequence, endOfBatch) -&gt; System.out.println(<span class="string">"Event: "</span> + event));</div><div class="line"></div><div class="line">        <span class="comment">// Start the Disruptor, starts all threads running</span></div><div class="line">        disruptor.start();</div><div class="line"></div><div class="line">        <span class="comment">// Get the ring buffer from the Disruptor to be used for publishing.</span></div><div class="line">        RingBuffer&lt;LongEvent&gt; ringBuffer = disruptor.getRingBuffer();</div><div class="line"></div><div class="line">        ByteBuffer bb = ByteBuffer.allocate(<span class="number">8</span>);</div><div class="line">        <span class="keyword">for</span> (<span class="keyword">long</span> l = <span class="number">0</span>; <span class="keyword">true</span>; l++)</div><div class="line">        &#123;</div><div class="line">            bb.putLong(<span class="number">0</span>, l);</div><div class="line">            ringBuffer.publishEvent((event, sequence, buffer) -&gt; event.set(buffer.getLong(<span class="number">0</span>)), bb);</div><div class="line">            Thread.sleep(<span class="number">1000</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>注意有一些类（如handler，translator）不再需要了。还要注意用于publishEvent()的lambda是如何引用传入的参数的。如果使用如下代码代替：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ByteBuffer bb = ByteBuffer.allocate(<span class="number">8</span>);</div><div class="line"><span class="keyword">for</span> (<span class="keyword">long</span> l = <span class="number">0</span>; <span class="keyword">true</span>; l++)</div><div class="line">&#123;</div><div class="line">    bb.putLong(<span class="number">0</span>, l);</div><div class="line">    ringBuffer.publishEvent((event, sequence) -&gt; event.set(bb.getLong(<span class="number">0</span>)));</div><div class="line">    Thread.sleep(<span class="number">1000</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这会创建一个capturing lambda，意味着需要实例化一个对象来持有<code>ByteBuffer bb</code>变量，通过调用publishEvent()来传递lambda。这样会创建额外不必须的垃圾，所以如果需要低GC压力就需要传递参数给lambda。<br>使用这种方法引用可以代替匿名的lamdba，以这种方式重写这个例子是可能的。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> com.lmax.disruptor.dsl.Disruptor;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.RingBuffer;</div><div class="line"><span class="keyword">import</span> java.nio.ByteBuffer;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executor;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventMain</span></span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">handleEvent</span><span class="params">(LongEvent event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span></span></div><div class="line">    &#123;</div><div class="line">        System.out.println(event);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">translate</span><span class="params">(LongEvent event, <span class="keyword">long</span> sequence, ByteBuffer buffer)</span></span></div><div class="line">    &#123;</div><div class="line">        event.set(buffer.getLong(<span class="number">0</span>));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// Executor that will be used to construct new threads for consumers</span></div><div class="line">        Executor executor = Executors.newCachedThreadPool();</div><div class="line"></div><div class="line">        <span class="comment">// Specify the size of the ring buffer, must be power of 2.</span></div><div class="line">        <span class="keyword">int</span> bufferSize = <span class="number">1024</span>;</div><div class="line"></div><div class="line">        <span class="comment">// Construct the Disruptor</span></div><div class="line">        Disruptor&lt;LongEvent&gt; disruptor = <span class="keyword">new</span> Disruptor&lt;&gt;(LongEvent::<span class="keyword">new</span>, bufferSize, executor);</div><div class="line"></div><div class="line">        <span class="comment">// Connect the handler</span></div><div class="line">        disruptor.handleEventsWith(LongEventMain::handleEvent);</div><div class="line"></div><div class="line">        <span class="comment">// Start the Disruptor, starts all threads running</span></div><div class="line">        disruptor.start();</div><div class="line"></div><div class="line">        <span class="comment">// Get the ring buffer from the Disruptor to be used for publishing.</span></div><div class="line">        RingBuffer&lt;LongEvent&gt; ringBuffer = disruptor.getRingBuffer();</div><div class="line"></div><div class="line">        ByteBuffer bb = ByteBuffer.allocate(<span class="number">8</span>);</div><div class="line">        <span class="keyword">for</span> (<span class="keyword">long</span> l = <span class="number">0</span>; <span class="keyword">true</span>; l++)</div><div class="line">        &#123;</div><div class="line">            bb.putLong(<span class="number">0</span>, l);</div><div class="line">            ringBuffer.publishEvent(LongEventMain::translate, bb);</div><div class="line">            Thread.sleep(<span class="number">1000</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="基本调优选项"><a href="#基本调优选项" class="headerlink" title="基本调优选项"></a>基本调优选项</h2><p>使用上述的方法可以在最广泛的部署场景中工作正常。然而，如果你能够确定Disruptor将要运行的硬件和软件环境，就可以调整参数提升性能。主要有以下两种调优方式：单vs.多生产者和替换等待策略。</p>
+<h3 id="单vs-多生产者"><a href="#单vs-多生产者" class="headerlink" title="单vs.多生产者"></a>单vs.多生产者</h3><p>提高并发系统性能的最佳方法之一就是遵守单作者原则(Single Writer Principle <a href="https://mechanical-sympathy.blogspot.tw/2011/09/single-writer-principle.html，这适用于Disruptor。如果你的情况是只有一个线程会在Disruptor中发布事件，那就可以利用此功能获得额外的性能提升。" target="_blank" rel="external">https://mechanical-sympathy.blogspot.tw/2011/09/single-writer-principle.html，这适用于Disruptor。如果你的情况是只有一个线程会在Disruptor中发布事件，那就可以利用此功能获得额外的性能提升。</a><br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">LongEventMain</span></span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">//.....</span></div><div class="line">        <span class="comment">// Construct the Disruptor with a SingleProducerSequencer</span></div><div class="line">        Disruptor&lt;LongEvent&gt; disruptor = <span class="keyword">new</span> Disruptor(</div><div class="line">            factory, bufferSize, ProducerType.SINGLE, <span class="keyword">new</span> BlockingWaitStrategy(), executor);</div><div class="line">        <span class="comment">//.....</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>OneToOne 性能测试（<a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/sequenced/OneToOneSequencedThroughputTest.java）可以说明这种技术能够提升多少性能。以下测试使用i7" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/sequenced/OneToOneSequencedThroughputTest.java）可以说明这种技术能够提升多少性能。以下测试使用i7</a> Sandy Bridge MacBook Air。<br><strong>多生产者</strong></p>
+<blockquote>
+<p>Run 0, Disruptor=26,553,372 ops/sec<br>Run 1, Disruptor=28,727,377 ops/sec<br>Run 2, Disruptor=29,806,259 ops/sec<br>Run 3, Disruptor=29,717,682 ops/sec<br>Run 4, Disruptor=28,818,443 ops/sec<br>Run 5, Disruptor=29,103,608 ops/sec<br>Run 6, Disruptor=29,239,766 ops/sec</p>
+</blockquote>
+<p><strong>单生产者</strong></p>
+<blockquote>
+<p>Run 0, Disruptor=89,365,504 ops/sec<br>Run 1, Disruptor=77,579,519 ops/sec<br>Run 2, Disruptor=78,678,206 ops/sec<br>Run 3, Disruptor=80,840,743 ops/sec<br>Run 4, Disruptor=81,037,277 ops/sec<br>Run 5, Disruptor=81,168,831 ops/sec<br>Run 6, Disruptor=81,699,346 ops/sec</p>
+</blockquote>
+<h3 id="替换等待策略"><a href="#替换等待策略" class="headerlink" title="替换等待策略"></a>替换等待策略</h3><h4 id="BlockingWaitStategy"><a href="#BlockingWaitStategy" class="headerlink" title="BlockingWaitStategy"></a>BlockingWaitStategy</h4><p>Disruptor默认的等待策略是BlockingWaitStategy。在BlockingWaitStategy内部使用一个典型的锁和条件(a typical lock and condition)变量处理线程唤醒。BlockingWaitStategy是可用等待策略中最慢的，但也是在CPU使用上最保守的，同时也将在最广泛的部署选项中提供最一致的行为。然而，再说一次，了解部署系统可以获得额外的性能提升。</p>
+<h4 id="SleepingWaitStrategy"><a href="#SleepingWaitStrategy" class="headerlink" title="SleepingWaitStrategy"></a>SleepingWaitStrategy</h4><p>类似BlockingWaitStategy，SleepingWaitStrategy也试图在CPU使用上保持保守，这通过一个忙等待(busy wait loop)循环实现，但在循环中间会调用LockSupport.parkNanos(1)。在一个典型的Linux系统，这样会暂停线程大概60µs(译注1µs=1000ns)。但它的好处是生产者线程除了增加响应的计数器外，不需要采取任何行动，而且不需要给条件变量发信号的成本(cost of signalling a condition variable)。然而，生产者和消费者转移事件的平均延迟会增加。这种方式最好工作在不需要低延迟，但对生产者线程影响最小的情况下。一个常见的使用场景是异步日志。</p>
+<h4 id="YieldingWaitStrategy"><a href="#YieldingWaitStrategy" class="headerlink" title="YieldingWaitStrategy"></a>YieldingWaitStrategy</h4><p>可用于低延迟系统的两种等待策略其中之一，这种策略通过消耗CPU时钟周期来达到优化延迟的目的。这种策略使用忙循环(busy spin)等待正确的序号到达。在循环内部，Thread.yield()将被调用，来允许其他排队中的线程运行。当需要很高的性能，而且事件处理者EventHandler的线程数少于CPU逻辑核心数时（比如使用超线程时），推荐使用这种策略。</p>
+<h4 id="BusySpinWaitStrategy"><a href="#BusySpinWaitStrategy" class="headerlink" title="BusySpinWaitStrategy"></a>BusySpinWaitStrategy</h4><p>这种策略有最高的性能，但也有最高的部署边境限制。这种等待策略应该只用于事件处理者线程小于CPU物理核心数。</p>
+<h3 id="清除环形缓冲的对象"><a href="#清除环形缓冲的对象" class="headerlink" title="清除环形缓冲的对象"></a>清除环形缓冲的对象</h3><p>使用Disruptor传输数据时，对象的存活周期有可能比预期更长。为了避免发生这种情况，有必要在事件处理完毕后做清理。如果有一个事件处理器，在这个事件处理器中做清理就足够了。如果有一个事件处理链，那就可能会在链尾需要一个特定的处理器来清理这个对象。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ObjectEvent</span>&lt;<span class="title">T</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    T val;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">clear</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        val = <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ClearingEventHandler</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">EventHandler</span>&lt;<span class="title">ObjectEvent</span>&lt;<span class="title">T</span>&gt;&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(ObjectEvent&lt;T&gt; event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// Failing to call clear here will result in the</span></div><div class="line">        <span class="comment">// object associated with the event to live until</span></div><div class="line">        <span class="comment">// it is overwritten once the ring buffer has wrapped</span></div><div class="line">        <span class="comment">// around to the beginning.</span></div><div class="line">        event.clear();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span></div><div class="line">&#123;</div><div class="line">    Disruptor&lt;ObjectEvent&lt;String&gt;&gt; disruptor = <span class="keyword">new</span> Disruptor&lt;&gt;(</div><div class="line">        () -&gt; ObjectEvent&lt;String&gt;(), bufferSize, executor);</div><div class="line"></div><div class="line">    disruptor</div><div class="line">        .handleEventsWith(<span class="keyword">new</span> ProcessingEventHandler())</div><div class="line">        .then(<span class="keyword">new</span> ClearingObjectHandler());</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/24/解读Disruptor系列-Disruptor论文精选/" rel="next" title="解读Disruptor系列-Disruptor论文精选">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列-Disruptor论文精选
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/" rel="prev" title="解读Disruptor系列--解读源码（0）之源码导读">
+                解读Disruptor系列--解读源码（0）之源码导读 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#核心概念"><span class="nav-number">1.1.</span> <span class="nav-text">核心概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多播事件"><span class="nav-number">1.2.</span> <span class="nav-text">多播事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#消费者依赖图"><span class="nav-number">1.3.</span> <span class="nav-text">消费者依赖图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#事件预分配"><span class="nav-number">1.4.</span> <span class="nav-text">事件预分配</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可选的无锁"><span class="nav-number">1.5.</span> <span class="nav-text">可选的无锁</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#入门指南"><span class="nav-number">2.</span> <span class="nav-text">入门指南</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本的事件生产和消费"><span class="nav-number">2.1.</span> <span class="nav-text">基本的事件生产和消费</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#使用3-x版本的Translator"><span class="nav-number">2.1.1.</span> <span class="nav-text">使用3.x版本的Translator</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用Java8"><span class="nav-number">2.1.2.</span> <span class="nav-text">使用Java8</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基本调优选项"><span class="nav-number">2.2.</span> <span class="nav-text">基本调优选项</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#单vs-多生产者"><span class="nav-number">2.2.1.</span> <span class="nav-text">单vs.多生产者</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#替换等待策略"><span class="nav-number">2.2.2.</span> <span class="nav-text">替换等待策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#BlockingWaitStategy"><span class="nav-number">2.2.2.1.</span> <span class="nav-text">BlockingWaitStategy</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SleepingWaitStrategy"><span class="nav-number">2.2.2.2.</span> <span class="nav-text">SleepingWaitStrategy</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#YieldingWaitStrategy"><span class="nav-number">2.2.2.3.</span> <span class="nav-text">YieldingWaitStrategy</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#BusySpinWaitStrategy"><span class="nav-number">2.2.2.4.</span> <span class="nav-text">BusySpinWaitStrategy</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#清除环形缓冲的对象"><span class="nav-number">2.2.3.</span> <span class="nav-text">清除环形缓冲的对象</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/';
+          this.page.identifier = '2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/';
+          this.page.title = '解读Disruptor系列-Disruptor官方介绍与入门指南';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

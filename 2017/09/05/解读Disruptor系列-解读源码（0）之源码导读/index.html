@@ -1,0 +1,861 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="本篇文章是后续解读Disruptor源码的导读，适合对Disruptor还不了解的同学。如果有兴趣，还可以看下我之前发的Disruptor系列文章。要大概弄明白Disruptor是个什么玩意，可以先回答这几个问题：Disruptor是什么？为什么要用Disruptor？Disruptor为什么那么快？ Disruptor是什么？我也来个一句话总结：Disruptor是LMAX开源的、用于替代并发线">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列--解读源码（0）之源码导读">
+<meta property="og:url" content="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="本篇文章是后续解读Disruptor源码的导读，适合对Disruptor还不了解的同学。如果有兴趣，还可以看下我之前发的Disruptor系列文章。要大概弄明白Disruptor是个什么玩意，可以先回答这几个问题：Disruptor是什么？为什么要用Disruptor？Disruptor为什么那么快？ Disruptor是什么？我也来个一句话总结：Disruptor是LMAX开源的、用于替代并发线">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-344d831510d86064.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.383Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列--解读源码（0）之源码导读">
+<meta name="twitter:description" content="本篇文章是后续解读Disruptor源码的导读，适合对Disruptor还不了解的同学。如果有兴趣，还可以看下我之前发的Disruptor系列文章。要大概弄明白Disruptor是个什么玩意，可以先回答这几个问题：Disruptor是什么？为什么要用Disruptor？Disruptor为什么那么快？ Disruptor是什么？我也来个一句话总结：Disruptor是LMAX开源的、用于替代并发线">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/931112-344d831510d86064.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/"/>
+
+
+
+
+
+  <title>解读Disruptor系列--解读源码（0）之源码导读 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列--解读源码（0）之源码导读</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-05T16:14:47+08:00">
+                2017-09-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本篇文章是后续解读Disruptor源码的导读，适合对Disruptor还不了解的同学。如果有兴趣，还可以看下我之前发的Disruptor系列文章。<br>要大概弄明白Disruptor是个什么玩意，可以先回答这几个问题：<br>Disruptor是什么？<br>为什么要用Disruptor？<br>Disruptor为什么那么快？</p>
+<h2 id="Disruptor是什么？"><a href="#Disruptor是什么？" class="headerlink" title="Disruptor是什么？"></a>Disruptor是什么？</h2><p>我也来个一句话总结：<strong>Disruptor是LMAX开源的、用于替代并发线程间数据交换的有界队列的、可选无锁的、高性能的线程间通讯框架。</strong></p>
+<p>听起来是不是感觉高大上？是不是觉得很好奇怎么个高性能？是不是还有点云里雾里咋交换数据？这也是我最初的感觉。<br>慢慢来，我们逐步分解这些名词。<br><strong>Disruptor</strong>：首先我们看看Disruptor这个词。熟悉星际迷航（Star Trek）的同学可能对这个词会更熟悉，Disruptor（裂解炮）和Phaser（相位枪）都是星际迷航中的武器，Phaser是联邦武器，而Disruptor是克林贡的等价物。看起来Disruptor和Phaser是类似的，那Phaser又是啥呢？在jdk1.7中，Doug Lea大师为我们带来了Phaser，一个可重用的同步屏障，功能类似CyclicBarrier和CountDownLatch，但是使用更加灵活。<br>LMAX团队之所以为Disruptor起了这个名字，一方面是因为Disruptor和Phaser在处理依赖图表（或者说是消费链、多阶段处理、流水线）时有类似的地方；另一方面，Disruptor这个词本身就有分裂、破坏的意思，很符合Disruptor中的设计思想对于传统并发编程思想的某种“对立”–并发编程总是在想如何利用多线程去拥有更大的吞吐量、更少的延迟，而Disruptor却通过非常多的性能测试发现，在并发编程中正是过多的线程间通讯、争抢导致了性能瓶颈，而最终选择了单线程的处理逻辑去完成业务处理。<br><strong>LMAX</strong>：LMAX是英国一个交易量很大的金融交易所，也是开源Disruptor的组织。<br><strong>开源</strong>：<a href="https://github.com/LMAX-Exchange/disruptor" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor</a><br><strong>并发线程间数据交换的有界队列</strong> ：在并发编程时，经常需要在线程间交换数据，如任务分发、事件传递、状态变更等， 这时通常需要多个线程去访问一个线程安全的数据结构，一般选择使用队列（Queue）实现。队列在容量上又分为有界和无界，使用无界队列通常都需要保证生产者生产速度小于消费者消费速度，否则将由于内存耗尽导致灾难结果。为了避免这种情况，队列通常是有界的。Java中经常使用BlockingQueue作为并发线程使用的有界队列，使用put()、take()在队列满、空的情况下进行等待，非常适合多线程间的数据共享，实现方式一般有ArrayBlockingQueue和LinkedBlockingQueue。<br><strong>线程间通讯</strong>：等同于并发线程间的数据交换。<br><strong>可选无锁</strong>：使用Disruptor唯一可能遇到Java锁的时候，就是在消费者等待可用事件进行消费时。而Disruptor为这个等待过程，编写了包括使用锁和不使用锁的多种策略，可根据不同场景和需求进行选择。<br><strong>高性能</strong>：单生产者+单消费者性能测试：<br>使用LinkedBlockingQueue（<a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/queue/OneToOneQueueThroughputTest.java" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/queue/OneToOneQueueThroughputTest.java</a> ）</p>
+<blockquote>
+<p>Starting Queue tests<br>Run 0, BlockingQueue=3,687,315 ops/sec<br>Run 1, BlockingQueue=2,721,088 ops/sec<br>Run 2, BlockingQueue=3,471,017 ops/sec<br>Run 3, BlockingQueue=5,347,593 ops/sec<br>Run 4, BlockingQueue=5,316,321 ops/sec<br>Run 5, BlockingQueue=5,449,591 ops/sec<br>Run 6, BlockingQueue=5,173,305 ops/sec</p>
+</blockquote>
+<p>使用常用的带Translator的Disruptor测试（<a href="https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/translator/OneToOneTranslatorThroughputTest.java）" target="_blank" rel="external">https://github.com/LMAX-Exchange/disruptor/blob/master/src/perftest/java/com/lmax/disruptor/translator/OneToOneTranslatorThroughputTest.java）</a></p>
+<blockquote>
+<p>Starting Disruptor tests<br>Run 0, Disruptor=20,222,446 ops/sec<br>Run 1, Disruptor=70,671,378 ops/sec<br>Run 2, Disruptor=37,878,787 ops/sec<br>Run 3, Disruptor=37,105,751 ops/sec<br>Run 4, Disruptor=38,986,354 ops/sec<br>Run 5, Disruptor=27,578,599 ops/sec<br>Run 6, Disruptor=34,281,796 ops/sec</p>
+</blockquote>
+<p>综上的名词解释，聪明如你，想必已经明白个大概了。如果还是不明白，肯定是我讲的不好，请留言。</p>
+<h2 id="为什么要用Disruptor？"><a href="#为什么要用Disruptor？" class="headerlink" title="为什么要用Disruptor？"></a>为什么要用Disruptor？</h2><p>那为什么要用Disruptor呢？或者说Disruptor解决了什么问题呢？<br>一般情况下，新的发明创造都是伴随着对旧有事物的痛点产生的。在并发线程间交换数据这个问题上，使用传统的阻塞队列有什么问题呢？<br>根据LMAX团队在2011年发布的<a href="https://lmax-exchange.github.io/disruptor/files/Disruptor-1.0.pdf" target="_blank" rel="external">论文</a>，可简单归结为以下几个问题：</p>
+<ol>
+<li>锁的成本： 传统阻塞队列使用锁保证线程安全。而<strong>锁通过操作系统内核的上下文切换实现，会暂停线程去等待锁直到释放。执行这样的上下文切换，会丢失之前保存的数据和指令。</strong>由于消费者和生产者之间的速度差异，队列总是接近满或者空的状态。这种状态会导致高水平的写入争用。</li>
+<li>伪共享问题导致的性能低下。</li>
+<li>队列是垃圾的重要来源，队列中的元素和用于存储元素的节点对象需要进行频繁的重新分配。</li>
+</ol>
+<p>论文中给出的，循环5亿次64位计数操作使用时间对比：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-344d831510d86064.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="执行5亿次64位计数操作使用时间对比"></p>
+<p>Disruptor通过良好的设计，最大限度解决了上述三个问题。<br>好奇如你，难道就不想知道其中奥妙吗？</p>
+<h2 id="Disruptor为什么那么快？"><a href="#Disruptor为什么那么快？" class="headerlink" title="Disruptor为什么那么快？"></a>Disruptor为什么那么快？</h2><p>简单来说，Disruptor在设计上有以下几点优势：</p>
+<ol>
+<li>内部数据存储使用环形缓冲（Ring Buffer），在启动时进行对象内存分配，这个对象并非数据本身，而只是一个数据容器。这个容器由用户提供，在Disruptor运行时，生产者负责拿到容器设置好数据，消费者再去可用的容器中拿到数据完成消费。这样分配对象内存，将有极大可能让这些对象内存在主存中连续分配，从而支持了<strong>CPU缓存位置预测</strong>。否则每次new一个对象，很难知道对象内存分配到哪了。这样做好有个好处，环形缓冲在JVM生命周期中通常是永生的，<strong>GC的压力更小</strong>。</li>
+<li><strong>尽量使用无锁设计，合理使用CAS</strong>。举两个例子。<br>a. 通过区分是否允许并发生产者，细分单生产者模式和多生产者模式，单生产者单线程更新游标，多生产者模式使用CAS更新游标位置。<br>b. 在阻塞型等待策略中，将等待分两部分。第一部分，消费者等待生产者发布新数据，由于不确定等待时间，使用锁的条件等待。而第二部分，消费者等待上一组消费者（Disruptor支持链式消费，类似Phaser分阶段处理） 完成此数据消费时，由于已确定有可消费数据，且假定通常的消费时间较短，所以使用自旋（忙循环）来避免上下文切换导致的性能开销。<strong>能不用锁就不用锁，即便要用锁，也要将使用锁的粒度用的最小。</strong></li>
+<li>优化数据结构，<strong>解决伪共享问题</strong>。Java中通过填充缓存行，来解决伪共享问题的思路，现在可能已经是老生常谈，连Java8中都新增了sun.misc.Contended注解来避免伪共享问题。但在Disruptor刚出道那会儿，能够以“机械同情（mechanical sympathy）”的思考方式，来优化Java数据结构，这恐怕还很新潮。</li>
+<li>优化其他实现细节。举几个例子。<br>a. 如一个RingBuffer，容量bufferSize为2的幂。使用sequence表示事件序号，可通过<code>sequence &amp; (bufferSize - 1)</code>定位元素的index，比普通的求余取模（%）要快得多。事先计算好bufferSize以2为底的对数indexShift，可通过<code>sequence &gt;&gt;&gt; indexShift</code>快速计算出<code>sequence/bufferSize</code>的商flag（其实相当于当前sequence在环形跑道上跑了几圈，在数据生产时要设置好flag，在数据消费时就可以通过比对flag判断此位置的数据是不是本圈的数据），比除法要快得多。<br>b. <strong>合理使用Unsafe</strong>，实现更加高效地内存管理和原子访问。Unsafe封装了一些类似C/C++中的指针操作，除了JDK，在Netty、Spring、Kafka、Storm等非常多的流行开源项目中都使用了Unsafe。</li>
+</ol>
+<p>简单讲到这，后续开始分享解读Disruptor源码的内容。</p>
+<hr>
+<p><strong>参考资料</strong><br>1.Java8使用@sun.misc.Contended避免伪共享 - <a href="http://www.jianshu.com/p/c3c108c3dcfd" target="_blank" rel="external">http://www.jianshu.com/p/c3c108c3dcfd</a><br>2.写Java也得了解CPU–CPU缓存  <a href="http://www.cnblogs.com/techyc/p/3607085.html" target="_blank" rel="external">http://www.cnblogs.com/techyc/p/3607085.html</a><br>3.linux查看CPU高速缓存(cache)信息   <a href="http://www.cnblogs.com/kekukele/p/3829369.html" target="_blank" rel="external">http://www.cnblogs.com/kekukele/p/3829369.html</a><br>4.理解 CPU Cache  <a href="http://wsfdl.com/linux/2016/06/11/%E7%90%86%E8%A7%A3CPU%E7%9A%84cache.html" target="_blank" rel="external">http://wsfdl.com/linux/2016/06/11/%E7%90%86%E8%A7%A3CPU%E7%9A%84cache.html</a><br>5.关于CPU Cache – 程序猿需要知道的那些事  <a href="http://cenalulu.github.io/linux/all-about-cpu-cache/" target="_blank" rel="external">http://cenalulu.github.io/linux/all-about-cpu-cache/</a><br>6.Mechanical Sympathy - Memory Barriers/Fences <a href="https://mechanical-sympathy.blogspot.tw/2011/07/memory-barriersfences.html" target="_blank" rel="external">https://mechanical-sympathy.blogspot.tw/2011/07/memory-barriersfences.html</a><br>7.《Java高并发程序设计》- 4.4.3 Java中的指针：Unsafe类</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/08/25/解读Disruptor系列-Disruptor官方介绍与入门指南/" rel="next" title="解读Disruptor系列-Disruptor官方介绍与入门指南">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列-Disruptor官方介绍与入门指南
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/" rel="prev" title="解读Disruptor系列--解读源码（1）之初始化">
+                解读Disruptor系列--解读源码（1）之初始化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Disruptor是什么？"><span class="nav-number">1.</span> <span class="nav-text">Disruptor是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么要用Disruptor？"><span class="nav-number">2.</span> <span class="nav-text">为什么要用Disruptor？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Disruptor为什么那么快？"><span class="nav-number">3.</span> <span class="nav-text">Disruptor为什么那么快？</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/';
+          this.page.identifier = '2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/';
+          this.page.title = '解读Disruptor系列--解读源码（0）之源码导读';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

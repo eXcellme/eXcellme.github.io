@@ -1,0 +1,898 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="spring-jms, activemq, wireshark, tshark, pandas, mat," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="0x00 背景介绍最近遇到了一个消息队列阻塞的问题，查了好几天，才终于把这个问题解决。首先交代下我们的环境：支付业务，使用ActiveMQ配合Spring-jms收发消息，Spring版本3.2.16.RELEASE，ActiveMQ客户端版本5.11.1，ActiveMQ服务端版本5.13.2。消息队列消费者使用Spring-jms的DefaultMessageListenerContainer">
+<meta name="keywords" content="spring-jms, activemq, wireshark, tshark, pandas, mat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="探究SpringJMS+ActiveMQ消息阻塞之谜">
+<meta property="og:url" content="http://coderjerry.com/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="0x00 背景介绍最近遇到了一个消息队列阻塞的问题，查了好几天，才终于把这个问题解决。首先交代下我们的环境：支付业务，使用ActiveMQ配合Spring-jms收发消息，Spring版本3.2.16.RELEASE，ActiveMQ客户端版本5.11.1，ActiveMQ服务端版本5.13.2。消息队列消费者使用Spring-jms的DefaultMessageListenerContainer">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-4b54d902ba629e69.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-b1e6e841330e420f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-19b969f001e7dab1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-16015223ad218da6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-7e2161af994a5352.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:image" content="http://upload-images.jianshu.io/upload_images/931112-542e00b2d325a8c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.381Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="探究SpringJMS+ActiveMQ消息阻塞之谜">
+<meta name="twitter:description" content="0x00 背景介绍最近遇到了一个消息队列阻塞的问题，查了好几天，才终于把这个问题解决。首先交代下我们的环境：支付业务，使用ActiveMQ配合Spring-jms收发消息，Spring版本3.2.16.RELEASE，ActiveMQ客户端版本5.11.1，ActiveMQ服务端版本5.13.2。消息队列消费者使用Spring-jms的DefaultMessageListenerContainer">
+<meta name="twitter:image" content="http://upload-images.jianshu.io/upload_images/931112-4b54d902ba629e69.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/"/>
+
+
+
+
+
+  <title>探究SpringJMS+ActiveMQ消息阻塞之谜 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">探究SpringJMS+ActiveMQ消息阻塞之谜</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-22T19:18:29+08:00">
+                2017-09-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="0x00-背景介绍"><a href="#0x00-背景介绍" class="headerlink" title="0x00 背景介绍"></a>0x00 背景介绍</h1><p>最近遇到了一个消息队列阻塞的问题，查了好几天，才终于把这个问题解决。<br>首先交代下我们的环境：支付业务，使用ActiveMQ配合Spring-jms收发消息，Spring版本3.2.16.RELEASE，ActiveMQ客户端版本5.11.1，ActiveMQ服务端版本5.13.2。消息队列消费者使用Spring-jms的DefaultMessageListenerContainer作为消息监听容器，用org.springframework.jms.connection.CachingConnectionFactory对org.apache.activemq.ActiveMQConnectionFactory进行了封装，提供缓存功能。DefaultMessageListenerContainer的并发配置为1-10。<br>在较长的时间里，系统运行总体上较为稳定，但是期间发生过多次消息阻塞。之前查到过由于端口占用问题导致消息阻塞（<a href="https://issues.apache.org/jira/browse/AMQ-6362），只能通过重启解决，后来通过修改ActiveMQ" target="_blank" rel="external">https://issues.apache.org/jira/browse/AMQ-6362），只能通过重启解决，后来通过修改ActiveMQ</a> client源码请求超时时间解决了这一问题（此问题在ActiveMQ 5.14.5得到修复）。但是还有一种偶发的消息阻塞，时不常就会来那么一次，让人防不胜防。因为这个问题频发，之前还用Python写了一套监控MQ队列消息阻塞情况的代码，通过微信企业号接口发送。所以能大概知道每次阻塞的持续时间。这种阻塞发生概率较低，而且每次可能阻塞的时间不定，但大部分在30~40分钟左右。<br>另外，我使用了两个DefaultMessageListenerContainer实例，分别对应两个队列消费者。除业务处理监听外，其他配置都一样，但是每次阻塞都发生在其中一个固定队列。这种情况一度让我很困惑。直到最近再进行代码review，跟踪spring和activemq的源代码时，才发现一点头绪。</p>
+<h1 id="0x01-相关概念简介"><a href="#0x01-相关概念简介" class="headerlink" title="0x01 相关概念简介"></a>0x01 相关概念简介</h1><p>先简单介绍下几个涉及的概念：<br><strong>DefaultMessageListenerContainer （后文简称DMLC）</strong>：SpringJMS中用于异步消息监听的管理类。主要原理简单介绍下。首先通过内部初始化建立一个taskExecutor（默认实现是SimpleAsyncTaskExecutor），用于执行消息监听任务，任务通过DMLC内部类AsyncMessageListenerInvoker表示。默认情况下，SimpleAsyncTaskExecutor每次都会开启一个新线程。AsyncMessageListenerInvoker是实现了Runnable接口的任务抽象，在其executeOngoingLoop方法中不断调用MessageConsumer#receive(this.receiveTimeout)收取消息（见DMLC父类AbstractPollingMessageListenerContainer代码），这里默认的receiveTimeout是1秒。在接收到消息后，将会根据选定DMLC属性maxConcurrentConsumers（jms:listener-container标签中concurrency的最大值）和当前空闲消费线程数量，对消费线程数量，也就是同时运行的AsyncMessageListenerInvoker进行扩容，即由taskExecutor新建线程（通过DefaultMessageListenerContainer调用持有的ConnectionFactory方法创建session和consumer的方法获取MessageConsumer对象）接收消息。每个AsyncMessageListenerInvoker一次最大执行的任务数量，即MessageConsumer#receive(this.receiveTimeout)方法调用次数可以通过DMLC的maxMessagesPerTask属性制定，默认为Integer.MIN_VALUE，当指定为大于0的值时，在执行完maxMessagesPerTask次消息收取后，将会销毁当前线程。<br><strong>SingleConnectionFactory（后文简称SCF）</strong>：一个JMS ConnectionFactory的适配器，通过JDK Proxy代理Connection（参见SingleConnectionFactory$SharedConnectionInvocationHandler），总是获取同一个Connection，且忽略close。与消息监听容器配合使用的作用是，在多个容器间共享一个JMS Connection。<br><strong>CachingConnectionFactory （后文简称CCF）</strong>：在SingleConnectionFactory的基础上，添加了Session、MessageConsumer、MessageProducer的缓存功能，与SingleConnectionFactory类似，使用JDK Proxy代理了Session，具体可以查看CachingConnectionFactory$CachedSessionInvocationHandler这个内部类，它包装了原生的Session，主要提供MessageConsumer和MessageProducer的缓存功能。缓存session数量由参数sessionCacheSize决定，默认为1。</p>
+<h1 id="0x02-探究MQ阻塞之谜"><a href="#0x02-探究MQ阻塞之谜" class="headerlink" title="0x02 探究MQ阻塞之谜"></a>0x02 探究MQ阻塞之谜</h1><p>通过阅读源码和javadoc了解到，在DMLC的注释文档中，<strong>写明了DefaultMessageListenerContainer不能与CachingConnectionFactory配合进行动态扩容。</strong>这是因为CachingConnectionFactory更倾向于让监听容器自己处理缓存。在同时停止和重启一个监听容器时，只会在独立的且被容器本身缓存的连接上起作用，而不会在外部缓存的连接上起作用。</p>
+<blockquote>
+<p>Note: <strong>Don’t use Spring’s org.springframework.jms.connection.CachingConnectionFactory in combination with dynamic scaling</strong>. <strong>Ideally, don’t use it with a message listener container at all</strong>, since it is generally preferable to let the listener container itself handle appropriate caching within its lifecycle. Also, stopping and restarting a listener container will only work with an independent, locally cached Connection - not with an externally cached one.</p>
+</blockquote>
+<p>在<a href="https://stackoverflow.com/questions/21984319/why-defaultmessagelistenercontainer-should-not-use-cachingconnectionfactory" target="_blank" rel="external">StackOverflow</a>中Spring-jms的开发主管也说明了为什么DMLC不能使用CCF，简而言之，CCF由于缓存了Session和MessageConsumer，在DMLC对消费线程进行缩容时，虽然消费线程销毁了，但是消费者在，Broker还会一直给MessageConsumer发消息。<br>其实查到这，就完全够用了，把CCF换掉，程序应该就可以跑了。但那显然不符合咱们对技术刨根问题的风格，于是咱们还是探究一下MQ为什么会阻塞的实际原因。现在虽然是知道DMLC不能和CCF一起使用，但因为我们的DMLC并未指定maxMessagesPerTask参数，并不存在缩容的情况，所以实际原因还需要深入调查。<br>可能有小伙伴还不太了解ActiveMQ客户端的消费逻辑，这里我们插播下ActiveMQ消费逻辑。</p>
+<h2 id="0x02-1-ActiveMQ消费逻辑"><a href="#0x02-1-ActiveMQ消费逻辑" class="headerlink" title="0x02.1 ActiveMQ消费逻辑"></a>0x02.1 ActiveMQ消费逻辑</h2><p>ActiveMQ在消费消息时，并非直接从Broker进行网络通信，取消息进行消费。 我们通过FailoverTransport+TcpTransport举例，也就是failover:(tcp:…)形式的brokerUrl。</p>
+<p><strong>activemq-client的消费过程大致可以总结为，一个线程和broker进行通信，取得消息，放到一个缓存中，而另一个线程则不断地尝试从这个缓存中获取消息</strong>。<br>为了说明ActiveMQ的消费逻辑，我从一个完整的线程堆栈中，拉出了以下两条线程堆栈。</p>
+<p>负责和broker通信（tcp长连接）取消息的线程：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">&quot;ActiveMQ Transport: tcp://jms.xxx/192.168.30.xx:61618@54095&quot; prio=10 tid=0x00007f2bf0001000 nid=0x5f94 runnable [0x00007f2e470ef000]</div><div class="line">   java.lang.Thread.State: RUNNABLE</div><div class="line">    at java.net.SocketInputStream.socketRead0(Native Method)</div><div class="line">    at java.net.SocketInputStream.read(SocketInputStream.java:152)</div><div class="line">    at java.net.SocketInputStream.read(SocketInputStream.java:122)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpBufferedInputStream.fill(TcpBufferedInputStream.java:50)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpTransport$2.fill(TcpTransport.java:609)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpBufferedInputStream.read(TcpBufferedInputStream.java:58)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpTransport$2.read(TcpTransport.java:594)</div><div class="line">    at java.io.DataInputStream.readInt(DataInputStream.java:387)</div><div class="line">    at org.apache.activemq.openwire.OpenWireFormat.unmarshal(OpenWireFormat.java:258)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpTransport.readCommand(TcpTransport.java:221)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpTransport.doRun(TcpTransport.java:213)</div><div class="line">    at org.apache.activemq.transport.tcp.TcpTransport.run(TcpTransport.java:196)</div><div class="line">    at java.lang.Thread.run(Thread.java:745)</div></pre></td></tr></table></figure></p>
+<p>使用spring-jms DMLC消费消息的线程：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">&quot;org.springframework.jms.listener.DefaultMessageListenerContainer#0-4&quot; prio=10 tid=0x00007f2b4c076800 nid=0xb442 in Object.wait() [0x00007f2e3f3f2000]</div><div class="line">   java.lang.Thread.State: TIMED_WAITING (on object monitor)</div><div class="line">    at java.lang.Object.wait(Native Method)</div><div class="line">    - waiting on &lt;0x00000007ff81a8e8&gt; (a java.lang.Object)</div><div class="line">    at org.apache.activemq.**FifoMessageDispatchChannel**.dequeue(FifoMessageDispatchChannel.java:74)</div><div class="line">    - locked &lt;0x00000007ff81a8e8&gt; (a java.lang.Object)</div><div class="line">    at org.apache.activemq.ActiveMQMessageConsumer.dequeue(ActiveMQMessageConsumer.java:482)</div><div class="line">    at org.apache.activemq.ActiveMQMessageConsumer.receive(ActiveMQMessageConsumer.java:635)</div><div class="line">    at org.springframework.jms.connection.CachedMessageConsumer.receive(CachedMessageConsumer.java:74)</div><div class="line">    at org.springframework.jms.listener.AbstractPollingMessageListenerContainer.receiveMessage(AbstractPollingMessageListenerContainer.java:430)</div><div class="line">    at org.springframework.jms.listener.AbstractPollingMessageListenerContainer.doReceiveAndExecute(AbstractPollingMessageListenerContainer.java:310)</div><div class="line">    at org.springframework.jms.listener.AbstractPollingMessageListenerContainer.receiveAndExecute(AbstractPollingMessageListenerContainer.java:243)</div><div class="line">    at org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker.invokeListener(DefaultMessageListenerContainer.java:1103)</div><div class="line">    at org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker.executeOngoingLoop(DefaultMessageListenerContainer.java:1095)</div><div class="line">    at org.springframework.jms.listener.DefaultMessageListenerContainer$AsyncMessageListenerInvoker.run(DefaultMessageListenerContainer.java:992)</div><div class="line">    at java.lang.Thread.run(Thread.java:745)</div></pre></td></tr></table></figure></p>
+<p>这里，这个org.apache.activemq.FifoMessageDispatchChannel（由ActiveMQMessageConsumer持有，属性名称<strong>unconsumedMessages</strong>）就是用于缓存消息的类，其内部持有一个LinkedList<messagedispatch>，这个MessageDispatch就是从broker分发过来还未消费的消息封装。</messagedispatch></p>
+<h2 id="0x02-2-基于源码，大胆猜测"><a href="#0x02-2-基于源码，大胆猜测" class="headerlink" title="0x02.2 基于源码，大胆猜测"></a>0x02.2 基于源码，大胆猜测</h2><p>拉回整体，继续探究MQ阻塞之谜。<br>既然MQ的消费分两步，那应该就是在MessageConsumer收取到消息到本地后，消费线程没有及时调用MessageConsumer#receive()方法，导致消息一直在本地积压。但是broker不知道啊，只要这个MessageConsumer还在，它就会一直给它发消息。除非它不在了，才会把已经分发但未消费的消息分配给其他的MessageConsumer。<br>我按照线上环境，在本机使用单元测试进行模拟。使用反射获取ActiveMQMessageConsumer的消息缓存unconsumedMessages，每5秒打印一次所有阻塞的消息（包括consumerId, sessionId）。并在log4j2配置中，将org.springframework.jms和org.apache.activemq的打印级别调整为DEBUG。<br>果然发生了阻塞，通过在所有日志中查找<strong>阻塞消息的consumerId</strong>，（样例：session: ActiveMQSession {id=ID:mypc-58436-1505458977674-3:1:2,started=true}, consumer:ActiveMQMessageConsumer { value=ID:mypc-58436-1505458977674-3:1:2:1, started=true },）可以发现，在15:03:06到15:05:04之间，没有任何线程尝试从该阻塞消息对应的session。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-4b54d902ba629e69.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>修改DMLC的并发配置（listener-container的concurrency），从1-10变为固定值10，复现，说明和DMLC的动态改变消费线程无关。<br>问题查到这里，能断定的是，<strong>本文MQ的阻塞肯定和消费线程没有调用MessageConsumer#receive方法有关</strong>。但究竟为什么，是消费线程获取不到Session，还是获取不到MessageConsumer，还是获取到了MessageConsumer不能调用receive方法？还不得而知。</p>
+<p>顺带说一下ActiveMQSession的toString()格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&quot;ActiveMQSession &#123;id=&quot; + connectionId + &quot;:&quot; + 全局唯一递增序列号 + &quot;,started=&quot; + started.get() + &quot;&#125;&quot; // 参见 ActiveMQSession,ActiveMQConnection,LongSequenceGenerator,SessionId代码</div></pre></td></tr></table></figure></p>
+<p>对于zw_123-41988-1505188712169-1:1:13613，zw_123-41988-1505188712169-1:1是connectionId，而13613是指自JVM启动起来创建的ActiveMQSession序列号。</p>
+<p>看了半天DMLC了，既然没有什么线索了，就暂时看下其他的。<br>CachingConnectionFactory中用于缓存Session的cachedSessions属性是一个Map<integer, linkedlist<session="">&gt;，根据session类型（0-SESSION_TRANSACTED，1-AUTO_ACKNOWLEDGE，2-CLIENT_ACKNOWLEDGE，3-DUPS_OK_ACKNOWLEDGE）作为key获取一个Session List。这个sessionList的引用在创建<strong>Session代理</strong>（CachingConnectionFactory.CachedSessionInvocationHandler） 时被传递进去，并作为实例变量sessionList引用，<strong>默认情况下，这个sessionList的size为1</strong>。而在Session代理实现CachingConnectionFactory.CachedSessionInvocationHandler中的cachedConsumers和cachedProducers负责缓存消费者和生产者。</integer,></p>
+<p>以下为CachingConnectionFactory中获取Session和返还Session涉及Session缓存（sessionList）的处理代码。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// CachingConnectionFactory.java</span></div><div class="line"><span class="comment">/**</span></div><div class="line">* Checks for a cached Session for the given mode.</div><div class="line">*/</div><div class="line"><span class="function"><span class="keyword">protected</span> Session <span class="title">getSession</span><span class="params">(Connection con, Integer mode)</span> <span class="keyword">throws</span> JMSException </span>&#123;</div><div class="line">LinkedList&lt;Session&gt; sessionList;</div><div class="line"><span class="keyword">synchronized</span> (<span class="keyword">this</span>.cachedSessions) &#123;</div><div class="line">  sessionList = <span class="keyword">this</span>.cachedSessions.get(mode); <span class="comment">// 获取缓存session列表</span></div><div class="line">  <span class="keyword">if</span> (sessionList == <span class="keyword">null</span>) &#123;</div><div class="line">  sessionList = <span class="keyword">new</span> LinkedList&lt;Session&gt;();</div><div class="line">  <span class="keyword">this</span>.cachedSessions.put(mode, sessionList);</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line">Session session = <span class="keyword">null</span>;</div><div class="line"><span class="keyword">synchronized</span> (sessionList) &#123;</div><div class="line">  <span class="keyword">if</span> (!sessionList.isEmpty()) &#123;</div><div class="line">  session = sessionList.removeFirst(); <span class="comment">// 如果不为空，就取第一个session。默认情况下，sessionCacheSize数量为1，在cachedSessions没有缓存session时，会创建session</span></div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">if</span> (session != <span class="keyword">null</span>) &#123; <span class="comment">// 从缓存中取得session</span></div><div class="line">  <span class="keyword">if</span> (logger.isTraceEnabled()) &#123;</div><div class="line">  logger.trace(<span class="string">"Found cached JMS Session for mode "</span> + mode + <span class="string">": "</span> +</div><div class="line">    (session <span class="keyword">instanceof</span> SessionProxy ? ((SessionProxy) session).getTargetSession() : session));</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">else</span> &#123; <span class="comment">// 如果没有缓存session，就创建session</span></div><div class="line">  Session targetSession = createSession(con, mode); <span class="comment">// con就是CachingConnectionFactory中的target</span></div><div class="line">  <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</div><div class="line">  logger.debug(<span class="string">"Creating cached JMS Session for mode "</span> + mode + <span class="string">": "</span> + targetSession);</div><div class="line">  &#125;</div><div class="line">  session = getCachedSessionProxy(targetSession, sessionList); <span class="comment">// 使用jdk方式代理session</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">return</span> session;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// CachingConnectionFactory内部类 CachedSessionInvocationHandler，实现了InvocationHandler接口，负责Session代理</span></div><div class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">CachedSessionInvocationHandler</span> <span class="keyword">implements</span> <span class="title">InvocationHandler</span> </span>&#123;</div><div class="line"><span class="comment">// ...</span></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">logicalClose</span><span class="params">(Session proxy)</span> <span class="keyword">throws</span> JMSException </span>&#123; <span class="comment">// 逻辑关闭，没有实际关闭session，而是放到sessionList缓存</span></div><div class="line"><span class="comment">// Preserve rollback-on-close semantics.</span></div><div class="line"><span class="keyword">if</span> (<span class="keyword">this</span>.transactionOpen &amp;&amp; <span class="keyword">this</span>.target.getTransacted()) &#123;</div><div class="line">  <span class="keyword">this</span>.transactionOpen = <span class="keyword">false</span>;</div><div class="line">  <span class="keyword">this</span>.target.rollback();</div><div class="line">&#125;</div><div class="line"><span class="comment">// Physically close durable subscribers at time of Session close call.</span></div><div class="line"><span class="keyword">for</span> (Iterator&lt;Map.Entry&lt;ConsumerCacheKey, MessageConsumer&gt;&gt; it = <span class="keyword">this</span>.cachedConsumers.entrySet().iterator(); it.hasNext();) &#123;</div><div class="line">  Map.Entry&lt;ConsumerCacheKey, MessageConsumer&gt; entry = it.next();</div><div class="line"><span class="keyword">if</span> (entry.getKey().subscription != <span class="keyword">null</span>) &#123;</div><div class="line">  entry.getValue().close();</div><div class="line">  it.remove();</div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">// Allow for multiple close calls...</span></div><div class="line"><span class="keyword">boolean</span> returned = <span class="keyword">false</span>;</div><div class="line"><span class="keyword">synchronized</span> (<span class="keyword">this</span>.sessionList) &#123;</div><div class="line">  <span class="keyword">if</span> (!<span class="keyword">this</span>.sessionList.contains(proxy)) &#123;</div><div class="line">  <span class="keyword">this</span>.sessionList.addLast(proxy);</div><div class="line">  returned = <span class="keyword">true</span>;</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"><span class="keyword">if</span> (returned &amp;&amp; logger.isTraceEnabled()) &#123;</div><div class="line">  logger.trace(<span class="string">"Returned cached Session: "</span> + <span class="keyword">this</span>.target);</div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// ...</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>DMLC每次想要获得消息，就先得获取Session。在使用CCF时，CCF会首先判断Session缓存里有没有可用的Session，如果有就取出直接使用，如果没有就创建一个新的Session，并在Session使用完毕后尝试将Session放到Session缓存中，如果Session缓存已经满了，就执行Session的物理关闭。</p>
+<h2 id="0x02-3-通过Eclipse-MAT查看对象信息"><a href="#0x02-3-通过Eclipse-MAT查看对象信息" class="headerlink" title="0x02.3 通过Eclipse MAT查看对象信息"></a>0x02.3 通过Eclipse MAT查看对象信息</h2><p>基本逻辑差不多都了解了，那么我们查看下在阻塞发生时，Java堆中阻塞消息相关的MessageConsumer、Session信息。（啥？你还打了消息阻塞时候的堆信息？–对呀~）<br>使用Eclipse MAT打开Java堆信息，使用OQL查询消息阻塞的相关Session和Consumer：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">SELECT c, c.session, c.unconsumedMessages.list.size FROM org.apache.activemq.ActiveMQMessageConsumer c WHERE (c.unconsumedMessages.list.size &gt; 0)</div></pre></td></tr></table></figure></p>
+<p>查询到ActiveMQMessageConsumer和ActiveMQSession后，进行查看。在查看相关的ActiveMQSession时，发现了问题。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-b1e6e841330e420f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>如图中所示，消息阻塞的MessageConsumer相关的Session有两个MessageConsumer。项目中使用两个DMLC分别监听两个队列，使用同一个CCF封装ActiveMQConnectionFactory获取连接和Session。这两个消费者很显然就是由两个DMLC调用同一个Session创建的。那么，是不是消费线程虽然获取了Session，但一直在处理另一个MessageConsumer，而忽略了被阻塞消息所在的MessageConsumer呢？？？</p>
+<h2 id="0x02-4-锁定问题-还是日志大法好"><a href="#0x02-4-锁定问题-还是日志大法好" class="headerlink" title="0x02.4 锁定问题-还是日志大法好"></a>0x02.4 锁定问题-还是日志大法好</h2><p>有了这个设想，就有了一点方向，希望能从日志中找到些蛛丝马迹。<br>正巧近期又有次阻塞，直接从线上查日志。功夫不负有心人，通过查找消息阻塞相关的session {id=ID:zw_123-41988-1505188712169-1:1:13613,started=true}，从下面这段看似平淡无奇的日志里，终于看到了一丝曙光。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">1203078 2017-09-18 06:09:53,996|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating new transaction with name [org.springframework.jms.listener.DefaultMessageListenerContainer#0]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT</div><div class="line">1203079 2017-09-18 06:09:53,996|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating cached JMS Session for mode 0: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;</div><div class="line">1203080 2017-09-18 06:09:53,996|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Created JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;] from Connection [Shared JMS Connection: ActiveMQConnection &#123;id=ID:zw_123-41988-1505188712169-1:1,clientId=ID:zw_123-41988-1505188712169-0:1,started=true&#125;]</div><div class="line">1203081 2017-09-18 06:09:53,998|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating cached JMS MessageConsumer for destination [queue://ConsumptionOrder.Has.Paied]: ActiveMQMessageConsumer &#123; value=ID:zw_123-41988-1505188712169-1:1:13613:1, started=true &#125;</div><div class="line">... 省略...</div><div class="line">1292825 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Initiating transaction commit</div><div class="line">1292826 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Committing JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;]</div><div class="line">1292827 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|ID:zw_123-41988-1505188712169-1:1:13613 Transaction Commit :null</div><div class="line">1292828 2017-09-18 06:37:29,672|TRACE|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Returned cached Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;</div><div class="line">1292829 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Creating new transaction with name [org.springframework.jms.listener.DefaultMessageListenerContainer#1]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT</div><div class="line">1292830 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating new transaction with name [org.springframework.jms.listener.DefaultMessageListenerContainer#0]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT</div><div class="line">1292831 2017-09-18 06:37:29,672|TRACE|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|**Found cached JMS Session for mode 0: ActiveMQSession** &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;</div><div class="line">1292832 2017-09-18 06:37:29,672|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Created JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;] from Connection [Shared JMS Connection: ActiveMQConnection &#123;id=ID:zw_123-41988-1505188712169-1:1,clientId=ID:zw_123-41988-1505188712169-0:1,started=true&#125;]</div><div class="line">1292833 2017-09-18 06:37:29,673|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating cached JMS Session for mode 0: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13629,started=true&#125;</div><div class="line">1292834 2017-09-18 06:37:29,673|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Created JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13629,started=true&#125;] from Connection [Shared JMS Connection: ActiveMQConnection &#123;id=ID:zw_123-41988-1505188712169-1:1,clientId=ID:zw_123-41988-1505188712169-0:1,started=true&#125;]</div><div class="line">1292835 2017-09-18 06:37:29,674|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Creating cached JMS MessageConsumer for destination [**queue://queue.B**]: ActiveMQMessageConsumer &#123; value=ID:zw_123-41988-1505188712169-1:1:13613:2, started=true &#125;</div><div class="line">1292836 2017-09-18 06:37:29,675|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating cached JMS MessageConsumer for destination [**queue://queue.A**]: ActiveMQMessageConsumer &#123; value=ID:zw_123-41988-1505188712169-1:1:13629:1, started=true &#125;</div></pre></td></tr></table></figure></p>
+<p>对看似平淡无奇的日志的分析：<br>DefaultMessageListenerContainer#0 这个DMLC实例负责处理队列A，DefaultMessageListenerContainer#1这个DMLC实例负责处理队列B。每个DMLC实例在处理消息时，会根据配置可伸缩地使用1或多条线程去处理任务（伸缩逻辑见DMLC，处理消息逻辑见其内部类AsyncMessageListenerInvoker）。此时有两个线程#0-3负责处理队列A，#1-1负责处理队列B。但是由于使用了CachingConnectionFactory（CachingConnectionFactory实例只有一个，其实例变量cachedSessions负责保存创建的session，默认大小为1），#0-3线程在结束本次Session使用后，将Session放回了缓存中（1292828行）。<strong>此时恰逢#1-1线程请求Session，一看缓存中有可用Session，便取出使用（1292831行）</strong>。这个Session并非原生Session，而是CachingConnectionFactory通过JDK Proxy进行代理创建的Session代理（逻辑见内部类CachedSessionInvocationHandler），在Session代理中，对MessageConsumer进行了缓存。但是由于#1-1线程要处理的是队列B，不能使用#0-3之前创建的处理队列A的MessageConsumer，所以就创建了一个新的MessageConsumer负责处理队列B（1292835行）。<br>此时，线程#1-1将调用新创建的MessageConsumer的receive方法接收消息。在spring-jms中DMLC中规定了receive的默认超时时间为1秒（见DMLC父类AbstractPollingMessageListenerContainer.DEFAULT_RECEIVE_TIMEOUT），如果在1秒内没有接收到消息，将返回Session到缓存，并继续下一个循环。<br>注意，在接收消息的这一次循环中，相关的这个Session已经被该线程霸占，其他线程不能获取该Session，也就是说，该Session的另一个MessageConsumer中接收到的队列A的消息将得不到处理！<br>然而正常情况下，这种影响较小。在以下情况下才有可能出现问题：</p>
+<ol>
+<li>在一次消息接收循环的末尾，线程将Session返回到缓存池（CachingConnectionFactory中的cachedSessions）时，缓存池有空闲空间。因为如果缓存空间满了，程序将对Session做物理关闭，Session创建的MessageConsumer和MessageProducer将一并关闭，可能存在的未消费消息也会得到释放。</li>
+<li>在1成功的条件下，该线程在下一个消息接收循环的开始，又一次成功获取该Session。因为一旦其他线程获取该Session，就将调用另一个队列进行消费。这一步也是一个概率问题，虽然从缓存池取出操作使用removeFirst，返还操作使用addLast，即取、还操作分别操作首尾，但是由于sessionCacheSize默认设置为1，由于Session的返还和取出操作极快，在并发不严重的情况下，往往就会取到同一个Session。</li>
+<li>在1、2循环发生时，线程将霸占该Session，即在该Session的处理队列A的MessageConsumer被“遗忘”时，ActiveMQ又将消息分配给它处理。</li>
+</ol>
+<p>另，本项目现有配置为：DefaultMessageListenerContainer配合CachingConnectionFactory使用，使用2个DefaultMessageListenerContainer实例分别监听2个队列，并发数为1-10，其connectionFactory为一个CachingConnectionFatory，CachingConnectionFactory的sessionCacheSize为1。推测在使用DefaultMessageListenerContainer配合CachingConnectionFactory使用时，使用多个DefaultMessageListenerContainer共享一个CachingConnectionFactory时，有可能会出现该问题。<br>继续上面的条件分析，1、2看起来好像很难发生。但设想，如果所有的线程总是以一定的速率操作从Session缓存池取出、返还Session，那么是不是同一个线程拿到相同Session的概率就更大呢？那这个一定速率又是怎么来的呢，是不是总是收不到消息，大家都是按照默认超时时间1秒来循环操作缓存池呢？</p>
+<p>回顾线上环境当时的情况，消息使用量确实不高。因此消息阻塞的情况一直持续了大概40分钟，才终于被打破。原因是条件1中所说的“缓存池为空”条件不成立了，线程#1-1在返还Session，碰巧另一个线程同时放了个Session进去（又是老冤家#0-3, - -!），线程#1-1发现缓存池满了（其实就是默认值1），决定对Session进行物理关闭。Session的关闭才终于结束了其创建的MessageConsumer的生命，而MessageConsumer也终于肯放弃对未消费消息的持有，依依不舍地去了（参见ActiveMQMessageConsumer#close()）。。。之后ActiveMQ客户端发送Session和Consumer、Producer的删除信息给ActiveMQ Broker，未消费的MessageDispatch也将被重新分配给其他的Consumer进行消费。<br>以下是阻塞情况被打破的日志。查看第3、4行，#0-3线程返还Session到Session缓存池，近乎同时，#1-1发现Session缓存满了，只能把Session物理关闭。此时其关联的MessageConsumer也被关闭，至此未消费的消息才被回收重新分发。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|ID:zw_123-41988-1505188712169-1:1:13686 Transaction Commit :null</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|ID:zw_123-41988-1505188712169-1:1:13613 Transaction Commit :null</div><div class="line">**2017-09-18 07:19:49,910|TRACE|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Returned cached Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13686,started=true&#125;</div><div class="line">**</div><div class="line">**2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Closing cached Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13613,started=true&#125;</div><div class="line">**</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Creating new transaction with name [org.springframework.jms.listener.DefaultMessageListenerContainer#0]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT</div><div class="line">2017-09-18 07:19:49,910|TRACE|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Found cached JMS Session for mode 0: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13686,started=true&#125;</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|remove: ID:zw_123-41988-1505188712169-1:1:13613:2, lastDeliveredSequenceId:-1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Created JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13686,started=true&#125;] from Connection [Shared JMS Connection: ActiveMQConnection &#123;id=ID:zw_123-41988-1505188712169-1:1,clientId=ID:zw_123-41988-1505188712169-0:1,started=true&#125;]</div><div class="line">2017-09-18 07:19:49,910|TRACE|org.springframework.jms.listener.DefaultMessageListenerContainer#0-3|Found cached JMS MessageConsumer for destination [queue://queue.A]: ActiveMQMessageConsumer &#123; value=ID:zw_123-41988-1505188712169-1:1:13686:1, started=true &#125;</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-51856-1505195602738-5:9324:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-30343-1505195633167-5:9537:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-45783-1505195534974-5:9184:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-30343-1505195633167-5:9539:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-45783-1505195534974-5:9188:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-63173-1505195538255-1:9237:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-30343-1505195633167-5:9542:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-51856-1505195602738-5:9331:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-45783-1505195534974-5:9192:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-45783-1505195534974-5:9194:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_789-25467-1501664276715-5:50772:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-51856-1505195602738-5:9337:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-63173-1505195538255-1:9248:1:1:2</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-51856-1505195602738-5:9340:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-63173-1505195538255-1:9252:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_789-36182-1501664210853-5:50813:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_456-30343-1505195633167-5:9555:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_789-33412-1505357006369-3:316:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:app_789-36182-1501664210853-5:50816:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|on close, rollback duplicate: ID:zw_123-45783-1505195534974-5:9204:1:1:1</div><div class="line">2017-09-18 07:19:49,910|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|remove: ID:zw_123-41988-1505188712169-1:1:13613:1, lastDeliveredSequenceId:90527387</div><div class="line">2017-09-18 07:19:49,911|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Creating new transaction with name [org.springframework.jms.listener.DefaultMessageListenerContainer#1]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT</div><div class="line">2017-09-18 07:19:49,911|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Creating cached JMS Session for mode 0: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13687,started=true&#125;</div><div class="line">2017-09-18 07:19:49,911|DEBUG|org.springframework.jms.listener.DefaultMessageListenerContainer#1-1|Created JMS transaction on Session [Cached JMS Session: ActiveMQSession &#123;id=ID:zw_123-41988-1505188712169-1:1:13687,started=true&#125;] from Connection [Shared JMS Connection: ActiveMQConnection &#123;id=ID:zw_123-41988-1505188712169-1:1,clientId=ID:zw_123-41988-1505188712169-0:1,started=true&#125;]</div></pre></td></tr></table></figure></p>
+<h1 id="0x03-问题解决"><a href="#0x03-问题解决" class="headerlink" title="0x03 问题解决"></a>0x03 问题解决</h1><p>原因分析的差不多了，解决起来也比较简单。只要破坏掉以上几个条件之一即可。但为了避免引入其他问题，还是依Spring-jms所言，换掉CachingConnectionFactory，使用其他的ConnectionFactory。<br>在选择ConnectionFactory时，也遇到了选择障碍。是直接使用ActiveMQConnectionFactory，还是使用Spring-jms的SCF，还是使用PooledConnectionFactory呢？</p>
+<h2 id="0x03-1-PooledConnectionFactory为啥不缓存MessageConsumer？"><a href="#0x03-1-PooledConnectionFactory为啥不缓存MessageConsumer？" class="headerlink" title="0x03.1 PooledConnectionFactory为啥不缓存MessageConsumer？"></a>0x03.1 PooledConnectionFactory为啥不缓存MessageConsumer？</h2><p>提到了PooledConnectionFactory，就想为什么PooledConnectionFactory不对Consumer进行缓存呢？看了看PooledConnectionFactory的源码，才发现原来注释就说的很明白。<br>org.apache.activemq.jms.pool.PooledConnectionFactory注释：</p>
+<blockquote>
+<p>A JMS provider which pools Connection, Session and MessageProducer instances so it can be used with tools like Camel and Spring’s JmsTemplate and MessagListenerContainer. Connections, sessions and producers are returned to a pool after use so that they can be reused later without having to undergo the cost of creating them again. b&gt;NOTE: while this implementation does allow the creation of a collection of active consumers, it does not ‘pool’ consumers. Pooling makes sense for connections, sessions and producers, which are expensive to create and can remain idle a minimal cost. Consumers, on the other hand, are usually just created at startup and left active, handling incoming messages as they come. When a consumer is complete, it is best to close it rather than return it to a pool for later reuse: this is because, <strong>even if a consumer is idle, ActiveMQ will keep delivering messages to the consumer’s prefetch buffer, where they’ll get held until the consumer is active again.</strong> If you are creating a collection of consumers (for example, for multi-threaded message consumption), you might want to consider using a lower prefetch value for each consumer (e.g. 10 or 20), to ensure that all messages don’t end up going to just one of the consumers. See this FAQ entry for more detail: <a href="http://activemq.apache.org/i-do-not-receive-messages-in-my-second-consumer.html" target="_blank" rel="external">http://activemq.apache.org/i-do-not-receive-messages-in-my-second-consumer.html</a> Optionally, one may configure the pool to examine and possibly evict objects as they sit idle in the pool. This is performed by an “idle object eviction” thread, which runs asynchronously. Caution should be used when configuring this optional feature. Eviction runs contend with client threads for access to objects in the pool, so if they run too frequently performance issues may result. The idle object eviction thread may be configured using the setTimeBetweenExpirationCheckMillis method. By default the value is -1 which means no eviction thread will be run. Set to a non-negative value to configure the idle eviction thread to run.</p>
+</blockquote>
+<h2 id="0x03-2-简单的性能比对"><a href="#0x03-2-简单的性能比对" class="headerlink" title="0x03.2 简单的性能比对"></a>0x03.2 简单的性能比对</h2><p>但是如果不缓存消费者，效率真是比较低，还是选择缓存消费者吧。<br>排除了PooledConnectionFactory后，我选择了以下维度进行测试。<br>不同的DMLC cacheLevel：CACHE_NONE, CACHE_CONNECTION, CACHE_SESSION, CACHE_CONSUMER, AUTO<br>不同的DMLC connectionFactory： ActiveMQConnectionFactory, SingleConnectionFactory<br>不同的DMLC注入方式： 使用jms:listener-container标签, 使用bean标签注册DMLC实例</p>
+<p>经过一番非常不严谨的比对后，发现性能最高的组合是（基于JDK1.7）：<br>DMLC注入方式（使用bean标签注册DMLC实例）+connectionFactory（SingleConnectionFactory ）+cacheLevel（CACHE_CONSUMER）。</p>
+<h2 id="0x03-03-使用Wireshark和Python-Pandas探究性能谜题"><a href="#0x03-03-使用Wireshark和Python-Pandas探究性能谜题" class="headerlink" title="0x03.03 使用Wireshark和Python Pandas探究性能谜题"></a>0x03.03 使用Wireshark和Python Pandas探究性能谜题</h2><p>我一直以为使用jms:listener-container标签选择default也就是使用DMLC的方式和使用bean注入DMLC的方式效率一样，可实际测试才发现，使用bean的方式要比使用listener-container快1~3倍（注意是不严谨的测试哦，你测出来可能和我不一样的）。<br>百思不得其解之下，我尝试从它们的流量包中分析。<br>借助Wireshark，我分别抓了两种方式下的流量数据，每次都是收发1000条消息。dmlc-tag表示使用jms标签注入DMLC，dmlc-bean表示使用bean标签注入DMLC（名字不好没关系，只是代号而已–）。因为测试的量比较少，两种方式tag和bean分别使用5194ms和3246ms就完成了。<br>再看流量包的分析（WireShark 统计-IPv4 Statistics-All Addresses），输入显示过滤器“tcp.port == 61618”，发现使用bean方式的网络流量包相较使用jms tag的减少了3000+。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-19b969f001e7dab1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>可是这样看， 非常不直观，是哪种包少了呢？<br>为了更直观的查看，使用tshark将流量数据包导出成csv进行分析。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">tshark.exe -r dmlc-tag.pcap -T fields -e frame.number -e frame.time_epoch -e ip.src -e ip.dst -e ip.proto -e openwire -E header=y -E separator=&quot;-&quot; -E quote=n  openwire &gt; dmlc-tag.csv</div><div class="line">tshark.exe -r dmlc-bean.pcap -T fields -e frame.number -e frame.time_epoch -e ip.src -e ip.dst -e ip.proto -e openwire -E header=y -E separator=&quot;-&quot; -E quote=n  openwire &gt; dmlc-bean.csv</div></pre></td></tr></table></figure></p>
+<p>再借助Python Pandas进行粗略的分析：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</div><div class="line">tagdf = pd.read_csv(<span class="string">'920pcap\dmlc-tag.csv'</span>,delimiter=<span class="string">'-'</span>)</div><div class="line">beandf = pd.read_csv(<span class="string">'920pcap\dmlc-bean.csv'</span>,delimiter=<span class="string">'-'</span>)</div><div class="line"></div><div class="line">tagdf[<span class="string">'command'</span>] = tagdf[<span class="string">'openwire'</span>].str.split(<span class="string">','</span>).str.get(<span class="number">0</span>)</div><div class="line">beandf[<span class="string">'command'</span>] = beandf[<span class="string">'openwire'</span>].str.split(<span class="string">','</span>).str.get(<span class="number">0</span>)</div><div class="line"></div><div class="line">tagdf.groupby(<span class="string">'command'</span>)[<span class="string">'command'</span>].count()</div><div class="line">beandf.groupby(<span class="string">'command'</span>)[<span class="string">'command'</span>].count()</div></pre></td></tr></table></figure></p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-16015223ad218da6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>对两组数据包含的openwire协议命令求差集<br>set(tagdf[‘command’].unique())^set(beandf[‘command’].unique())</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-7e2161af994a5352.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt=""></p>
+<p>最终发现，bean的response要少(1010 vs. 44)，而且没有TransactionInfo。</p>
+<p>又经过一番源码的探索，发现，<strong>如果DMLC的sessionTransacted属性没有指明true，则将不使用事务</strong>。</p>
+<p>在Spring-jms源码org.springframework.jms.config.JmsListenerContainerParser中可以发现，acknowledge可以影响ListenerContainer的两个属性sessionTransacted和sessionAcknowledgeMode。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/931112-542e00b2d325a8c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>所以从jms:listener-container标签方式切换到bean注入方式，使用事务需要注意sessionTransacted这个属性，光是设置transactionManager可能不行。</p>
+<p>下面给出使用jms:listener-container和bean方式注入DMLC的代码，希望小伙伴们避免犯我这样的错误。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">&lt;jms:listener-container</div><div class="line">        connection-factory=&quot;consumerJmsConnectionFactory&quot;</div><div class="line">        transaction-manager=&quot;consumerJmsTransactionManager&quot;</div><div class="line">        concurrency=&quot;1-10&quot;</div><div class="line">        **acknowledge=&quot;transacted&quot;**</div><div class="line">        cache=&quot;consumer&quot;</div><div class="line">    &gt;</div><div class="line">        &lt;jms:listener destination=&quot;dest.queue&quot; ref=&quot;testConsumer&quot; method=&quot;receive&quot;/&gt; </div><div class="line">    &lt;/jms:listener-container&gt;</div></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">&lt;bean id=&quot;consumptionOrderListener&quot; class=&quot;org.springframework.jms.listener.adapter.MessageListenerAdapter&quot;&gt;</div><div class="line">&lt;property name=&quot;delegate&quot; ref=&quot;testConsumer&quot;/&gt;</div><div class="line">&lt;property name=&quot;defaultListenerMethod&quot; value=&quot;receive&quot;/&gt;</div><div class="line">&lt;!--&lt;property name=&quot;messageConverter&quot;--&gt;</div><div class="line">&lt;/bean&gt;</div><div class="line">&lt;bean class=&quot;org.springframework.jms.listener.DefaultMessageListenerContainer&quot;&gt;</div><div class="line">&lt;property name=&quot;connectionFactory&quot; ref=&quot;consumerJmsConnectionFactory&quot;/&gt;</div><div class="line">&lt;property name=&quot;transactionManager&quot; ref=&quot;consumerJmsTransactionManager&quot;/&gt;</div><div class="line">&lt;property name=&quot;concurrency&quot; value=&quot;1-10&quot;/&gt;</div><div class="line">&lt;property name=&quot;cacheLevelName&quot; value=&quot;CACHE_CONSUMER&quot; /&gt;</div><div class="line"></div><div class="line">**&lt;property name=&quot;sessionTransacted&quot; value=&quot;true&quot;/&gt;**</div><div class="line">&lt;property name=&quot;maxMessagesPerTask&quot; value=&quot;1000&quot;/&gt;</div><div class="line">&lt;property name=&quot;receiveTimeout&quot; value=&quot;1000&quot;/&gt;</div><div class="line">&lt;property name=&quot;destinationName&quot; value=&quot;dest.queue&quot;/&gt;</div><div class="line">&lt;property name=&quot;messageListener&quot; ref=&quot;consumptionOrderListener&quot;/&gt;</div><div class="line">&lt;/bean&gt;</div></pre></td></tr></table></figure>
+<p>在设置完事务后，再进行测试，两种方式的消费性能就差不多了。题外话，使用事务竟然对性能有这么大的影响，回头再研究下。<br>鉴于使用bean直接注入DMLC的方式，可以指定maxMessagesPerTask，从而较灵活地伸缩消费线程的数量，最后还是选择了使用bean的方式。<br>至此，困扰我很长时间的MQ阻塞之谜才终于解开。啊，开心。</p>
+<hr>
+<p>参考资料</p>
+<ol>
+<li><a href="https://docs.spring.io/spring/docs/3.2.16.RELEASE/spring-framework-reference/htmlsingle/#jms" target="_blank" rel="external">https://docs.spring.io/spring/docs/3.2.16.RELEASE/spring-framework-reference/htmlsingle/#jms</a></li>
+<li>Why DefaultMessageListenerContainer should not use CachingConnectionFactory? <a href="https://stackoverflow.com/questions/21984319/why-defaultmessagelistenercontainer-should-not-use-cachingconnectionfactory" target="_blank" rel="external">https://stackoverflow.com/questions/21984319/why-defaultmessagelistenercontainer-should-not-use-cachingconnectionfactory</a></li>
+<li>深入理解DefaultMessageListenerContainer <a href="http://bijian1013.iteye.com/blog/2309671" target="_blank" rel="external">http://bijian1013.iteye.com/blog/2309671</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/spring-jms-activemq-wireshark-tshark-pandas-mat/" rel="tag"># spring-jms, activemq, wireshark, tshark, pandas, mat</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/" rel="next" title="解读Disruptor系列--解读源码（2）之生产者">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列--解读源码（2）之生产者
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/" rel="prev" title="解读Disruptor系列--解读源码（3）之消费者">
+                解读Disruptor系列--解读源码（3）之消费者 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0x00-背景介绍"><span class="nav-number">1.</span> <span class="nav-text">0x00 背景介绍</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x01-相关概念简介"><span class="nav-number">2.</span> <span class="nav-text">0x01 相关概念简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x02-探究MQ阻塞之谜"><span class="nav-number">3.</span> <span class="nav-text">0x02 探究MQ阻塞之谜</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-1-ActiveMQ消费逻辑"><span class="nav-number">3.1.</span> <span class="nav-text">0x02.1 ActiveMQ消费逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-2-基于源码，大胆猜测"><span class="nav-number">3.2.</span> <span class="nav-text">0x02.2 基于源码，大胆猜测</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-3-通过Eclipse-MAT查看对象信息"><span class="nav-number">3.3.</span> <span class="nav-text">0x02.3 通过Eclipse MAT查看对象信息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-4-锁定问题-还是日志大法好"><span class="nav-number">3.4.</span> <span class="nav-text">0x02.4 锁定问题-还是日志大法好</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-问题解决"><span class="nav-number">4.</span> <span class="nav-text">0x03 问题解决</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-1-PooledConnectionFactory为啥不缓存MessageConsumer？"><span class="nav-number">4.1.</span> <span class="nav-text">0x03.1 PooledConnectionFactory为啥不缓存MessageConsumer？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-2-简单的性能比对"><span class="nav-number">4.2.</span> <span class="nav-text">0x03.2 简单的性能比对</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-03-使用Wireshark和Python-Pandas探究性能谜题"><span class="nav-number">4.3.</span> <span class="nav-text">0x03.03 使用Wireshark和Python Pandas探究性能谜题</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/';
+          this.page.identifier = '2017/09/22/探究SpringJMS-ActiveMQ消息阻塞之谜/';
+          this.page.title = '探究SpringJMS+ActiveMQ消息阻塞之谜';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

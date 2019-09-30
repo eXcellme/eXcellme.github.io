@@ -1,0 +1,948 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="今天和大家聊一聊Disruptor中的RingBuffer。代码版本基于3.3.6，逻辑和3.4.x变化不大。 0x01 Disruptor中的RingBufferRingBuffer在Disruptor早期功能比较多，承载着数据存储、生产消费的数据交换等任务。现在只保留了存储的能力，像发布数据这些功能也只是通过调用Sequencer去实现的。在RingBuffer中其实看不到这个”Buffer”">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列--解读源码（4）之RingBuffer">
+<meta property="og:url" content="http://coderjerry.com/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="今天和大家聊一聊Disruptor中的RingBuffer。代码版本基于3.3.6，逻辑和3.4.x变化不大。 0x01 Disruptor中的RingBufferRingBuffer在Disruptor早期功能比较多，承载着数据存储、生产消费的数据交换等任务。现在只保留了存储的能力，像发布数据这些功能也只是通过调用Sequencer去实现的。在RingBuffer中其实看不到这个”Buffer”">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/931112-79a8e36feeaa2739.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+<meta property="og:updated_time" content="2019-09-30T07:12:10.740Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列--解读源码（4）之RingBuffer">
+<meta name="twitter:description" content="今天和大家聊一聊Disruptor中的RingBuffer。代码版本基于3.3.6，逻辑和3.4.x变化不大。 0x01 Disruptor中的RingBufferRingBuffer在Disruptor早期功能比较多，承载着数据存储、生产消费的数据交换等任务。现在只保留了存储的能力，像发布数据这些功能也只是通过调用Sequencer去实现的。在RingBuffer中其实看不到这个”Buffer”">
+<meta name="twitter:image" content="https://upload-images.jianshu.io/upload_images/931112-79a8e36feeaa2739.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/"/>
+
+
+
+
+
+  <title>解读Disruptor系列--解读源码（4）之RingBuffer | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列--解读源码（4）之RingBuffer</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-09-30T15:09:08+08:00">
+                2019-09-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天和大家聊一聊Disruptor中的RingBuffer。代码版本基于3.3.6，逻辑和3.4.x变化不大。</p>
+<h1 id="0x01-Disruptor中的RingBuffer"><a href="#0x01-Disruptor中的RingBuffer" class="headerlink" title="0x01 Disruptor中的RingBuffer"></a>0x01 Disruptor中的RingBuffer</h1><p>RingBuffer在Disruptor早期功能比较多，承载着数据存储、生产消费的数据交换等任务。现在只保留了存储的能力，像发布数据这些功能也只是通过调用Sequencer去实现的。在RingBuffer中其实看不到这个”Buffer”为何是”Ring”，可以看看我之前关于生产者的文章了解下。<br>这里我们可以把Disruptor中的RingBuffer简单地理解为一个经过特殊优化的数组。<br>这个“特殊的数组”的特别之处在于：</p>
+<ol>
+<li>尽可能消除缓存的伪共享问题；</li>
+<li>使用数组存储，预先分配（尽可能）连续的内存地址，非常适合FIFO的时序消息特性，充分利用CPU Cache预取能力；</li>
+<li>对象重用，减少不必要的GC；<h1 id="0x02-实现细节"><a href="#0x02-实现细节" class="headerlink" title="0x02 实现细节"></a>0x02 实现细节</h1><h2 id="0x02-1-解决伪共享问题"><a href="#0x02-1-解决伪共享问题" class="headerlink" title="0x02.1 解决伪共享问题"></a>0x02.1 解决伪共享问题</h2>伪共享简介：计算机缓存是以缓存行（cache line）大小从内存拉数据并存储。缓存行最常见大小是64个字节。当同一缓存行内的不同变量被不同，就会无意中影响彼此的性能，这就是伪共享。伪共享常被称做无声的性能杀手，因为从代码中很难看清楚是否会出现伪共享。</li>
+</ol>
+<p><img src="https://upload-images.jianshu.io/upload_images/931112-79a8e36feeaa2739.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="RingBuffer类图"></p>
+<p>类图最左侧的RingBufferPad、RingBufferFields就是为了解决伪共享问题的。在RingBuffer的生命周期中，RingBufferFields中的属性会被频繁访问，为了解决缓存的伪共享问题，需要对每个缓存行进行填充。这种形式在Disruptor中经常使用。下表是RingBuffer实例属性。可以发现，不管缓存行中从哪个位置加载代表RingBuffer实例的数据，实际使用的属性sequencer、bufferSize、entries、indexMask会被加载到一或两个缓存行中，不会受到非RingBuffer属性外的干扰。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/*</span></div><div class="line"> * 填充辅助类，为解决缓存的伪共享问题，需要对每个缓存行(64B)进行填充</div><div class="line"> */</div><div class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">RingBufferPad</span></span></div><div class="line">&#123; <span class="comment">// https://github.com/LMAX-Exchange/disruptor/issues/167</span></div><div class="line">    <span class="comment">/*</span></div><div class="line">    RingBufferFields中的属性被频繁读取，这里的属性是为了避免RingBufferFields遇到伪共享问题</div><div class="line">     */</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">RingBufferFields</span>&lt;<span class="title">E</span>&gt; <span class="keyword">extends</span> <span class="title">RingBufferPad</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> BUFFER_PAD; <span class="comment">// 用于在数组中进行缓存行填充的空元素个数</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> REF_ARRAY_BASE; <span class="comment">// 内存中引用数组的开始元素基地址，是数组开始的地址+BUFFER_PAD个元素的偏移量之和，后续元素的内存地址需要在此基础计算地址</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> REF_ELEMENT_SHIFT; <span class="comment">// 引用元素的位移量，用于计算BUFFER_PAD偏移量，基于位移计算比乘法运算更高效</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Unsafe UNSAFE = Util.getUnsafe(); <span class="comment">// 上面的变量都是为了UNSAFE的操作</span></div><div class="line"></div><div class="line">    <span class="keyword">static</span> &#123;</div><div class="line">        <span class="keyword">final</span> <span class="keyword">int</span> scale = UNSAFE.arrayIndexScale(Object[].class); <span class="comment">// arrayIndexScale获取数组中一个元素占用的字节数，不同JVM实现可能有不同的大小</span></div><div class="line">        <span class="keyword">if</span> (<span class="number">4</span> == scale) &#123;</div><div class="line">            REF_ELEMENT_SHIFT = <span class="number">2</span>;</div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="number">8</span> == scale) &#123;</div><div class="line">            REF_ELEMENT_SHIFT = <span class="number">3</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Unknown pointer size"</span>);</div><div class="line">        &#125;</div><div class="line">        BUFFER_PAD = <span class="number">128</span> / scale; <span class="comment">// BUFFER_PAD=32 or 16，为什么是128呢？是为了满足处理器的缓存行预取功能(Adjacent Cache-Line Prefetch)</span></div><div class="line">        <span class="comment">// https://github.com/LMAX-Exchange/disruptor/issues/158</span></div><div class="line">        <span class="comment">// https://software.intel.com/en-us/articles/optimizing-application-performance-on-intel-coret-microarchitecture-using-hardware-implemented-prefetchers</span></div><div class="line">        <span class="comment">// Including the buffer pad in the array base offset</span></div><div class="line">        <span class="comment">// BUFFER_PAD &lt;&lt; REF_ELEMENT_SHIFT 实际上是BUFFER_PAD * scale的等价高效计算方式</span></div><div class="line">        REF_ARRAY_BASE = UNSAFE.arrayBaseOffset(Object[].class) + (BUFFER_PAD &lt;&lt; REF_ELEMENT_SHIFT);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">long</span> indexMask; <span class="comment">// 用于进行 &amp; 位与操作，实现高效的模操作</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Object[] entries;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">int</span> bufferSize;</div><div class="line">    <span class="keyword">protected</span> <span class="keyword">final</span> Sequencer sequencer; <span class="comment">// 生产者序列号</span></div><div class="line">    <span class="comment">// 省略...</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">RingBuffer</span>&lt;<span class="title">E</span>&gt; <span class="keyword">extends</span> <span class="title">RingBufferFields</span>&lt;<span class="title">E</span>&gt; <span class="keyword">implements</span> <span class="title">Cursored</span>, <span class="title">EventSequencer</span>&lt;<span class="title">E</span>&gt;, <span class="title">EventSink</span>&lt;<span class="title">E</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> INITIAL_CURSOR_VALUE = Sequence.INITIAL_VALUE; <span class="comment">// 游标初始值 -1</span></div><div class="line">    <span class="keyword">protected</span> <span class="keyword">long</span> p1, p2, p3, p4, p5, p6, p7;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>属性类型</th>
+<th>属性名</th>
+<th>字节数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>long</td>
+<td>p7</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p6</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p5</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p4</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p3</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p2</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p1</td>
+<td>8</td>
+</tr>
+<tr>
+<td>ref</td>
+<td>sequencer</td>
+<td>4/8</td>
+</tr>
+<tr>
+<td>int</td>
+<td>bufferSize</td>
+<td>4</td>
+</tr>
+<tr>
+<td>ref</td>
+<td>entries</td>
+<td>4/8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>indexMask</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p7</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p6</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p5</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p4</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p3</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p2</td>
+<td>8</td>
+</tr>
+<tr>
+<td>long</td>
+<td>p1</td>
+<td>8</td>
+</tr>
+</tbody>
+</table>
+<h2 id="0x02-2-对象复用与缓存预取"><a href="#0x02-2-对象复用与缓存预取" class="headerlink" title="0x02.2 对象复用与缓存预取"></a>0x02.2 对象复用与缓存预取</h2><p>使用数组而非链表，可以通过数组连续内存的特性最大化利用缓存行。但是数组里存储的一般是对象的引用，所以提前初始化对象有两点好处，其一是避免频繁的创建销毁，减少young gc，其二是通过初始化所有对象，尽可能使对象内存连续，由于处理器通常开启了缓存预取机制（参见<a href="https://software.intel.com/en-us/articles/optimizing-application-performance-on-intel-coret-microarchitecture-using-hardware-implemented-prefetchers" target="_blank" rel="external">Intel缓存预取文章</a>），这样就增加了缓存效率，降低了整体时延。Disruptor使用的事件对象在RingBuffer中不断往前推进，缓存可能在使用前就将数据准备好了。</p>
+<h1 id="0x03-总结"><a href="#0x03-总结" class="headerlink" title="0x03 总结"></a>0x03 总结</h1><p>RingBuffer的设计秉承了Disruptor的一贯思想，为了追求极致性能，不得不在软件层做出对硬件层的妥协。</p>
+<p>更多的<a href="https://github.com/eXcellme/disruptor_learn/blob/my_comment/src/main/java/com/lmax/disruptor/RingBuffer.java" target="_blank" rel="external">源码注释参考</a></p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://zhuanlan.zhihu.com/p/31875174" target="_blank" rel="external">细说Cache-L1/L2/L3/TLB</a></li>
+<li><a href="https://medium.com/software-design/why-software-developers-should-care-about-cpu-caches-8da04355bb8a" target="_blank" rel="external">Why software developers should care about CPU caches</a></li>
+<li><a href="https://software.intel.com/en-us/articles/optimizing-application-performance-on-intel-coret-microarchitecture-using-hardware-implemented-prefetchers" target="_blank" rel="external">Optimizing Application Performance on Intel® Core™ Microarchitecture Using Hardware-Implemented Prefetchers</a></li>
+<li><a href="https://en.wikipedia.org/wiki/CPU_cache" target="_blank" rel="external">CPU Cache Wiki</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Locality_of_reference" target="_blank" rel="external">Locality of reference Wiki</a></li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/29/解读Disruptor系列-解读源码（3）之消费者/" rel="next" title="解读Disruptor系列--解读源码（3）之消费者">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列--解读源码（3）之消费者
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#0x01-Disruptor中的RingBuffer"><span class="nav-number">1.</span> <span class="nav-text">0x01 Disruptor中的RingBuffer</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x02-实现细节"><span class="nav-number">2.</span> <span class="nav-text">0x02 实现细节</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-1-解决伪共享问题"><span class="nav-number">2.1.</span> <span class="nav-text">0x02.1 解决伪共享问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-2-对象复用与缓存预取"><span class="nav-number">2.2.</span> <span class="nav-text">0x02.2 对象复用与缓存预取</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#0x03-总结"><span class="nav-number">3.</span> <span class="nav-text">0x03 总结</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">3.1.</span> <span class="nav-text">参考资料</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/';
+          this.page.identifier = '2019/09/30/解读Disruptor系列-解读源码（4）之RingBuffer/';
+          this.page.title = '解读Disruptor系列--解读源码（4）之RingBuffer';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

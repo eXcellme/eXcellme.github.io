@@ -1,0 +1,841 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="disruptor," />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="解读Disruptor源码系列文章将从一个demo入手，逐步探究Disruptor中的源码实现。对原理不熟悉的同学建议先看我之前的两个翻译和导读文章。对Disruptor源码感兴趣的同学，可以下载我注释的Disruptor代码。 完整版Demo123456789101112131415161718192021222324252627282930313233343536373839404142434">
+<meta name="keywords" content="disruptor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解读Disruptor系列--解读源码（1）之初始化">
+<meta property="og:url" content="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/index.html">
+<meta property="og:site_name" content="Coder Jerry">
+<meta property="og:description" content="解读Disruptor源码系列文章将从一个demo入手，逐步探究Disruptor中的源码实现。对原理不熟悉的同学建议先看我之前的两个翻译和导读文章。对Disruptor源码感兴趣的同学，可以下载我注释的Disruptor代码。 完整版Demo123456789101112131415161718192021222324252627282930313233343536373839404142434">
+<meta property="og:updated_time" content="2019-09-30T07:02:44.384Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="解读Disruptor系列--解读源码（1）之初始化">
+<meta name="twitter:description" content="解读Disruptor源码系列文章将从一个demo入手，逐步探究Disruptor中的源码实现。对原理不熟悉的同学建议先看我之前的两个翻译和导读文章。对Disruptor源码感兴趣的同学，可以下载我注释的Disruptor代码。 完整版Demo123456789101112131415161718192021222324252627282930313233343536373839404142434">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/"/>
+
+
+
+
+
+  <title>解读Disruptor系列--解读源码（1）之初始化 | Coder Jerry</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?1e85ae3a9feb64741c29f9452df34162";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Coder Jerry</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jerry Li">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Coder Jerry">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">解读Disruptor系列--解读源码（1）之初始化</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-05T18:10:43+08:00">
+                2017-09-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding/" itemprop="url" rel="index">
+                    <span itemprop="name">Coding</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2017/09/05/解读Disruptor系列-解读源码（1）之初始化/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>解读Disruptor源码系列文章将从一个demo入手，逐步探究Disruptor中的源码实现。<br>对原理不熟悉的同学建议先看我之前的两个翻译和导读文章。<br>对Disruptor源码感兴趣的同学，可以下载我<a href="https://github.com/eXcellme/disruptor_learn" target="_blank" rel="external">注释的Disruptor代码</a>。</p>
+<h2 id="完整版Demo"><a href="#完整版Demo" class="headerlink" title="完整版Demo"></a>完整版Demo</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.coderjerry.disruptor;</div><div class="line"></div><div class="line"><span class="keyword">import</span> com.google.common.util.concurrent.ThreadFactoryBuilder;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.BlockingWaitStrategy;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventFactory;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventHandler;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.EventTranslatorOneArg;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.dsl.Disruptor;</div><div class="line"><span class="keyword">import</span> com.lmax.disruptor.dsl.ProducerType;</div><div class="line"><span class="keyword">import</span> java.lang.Thread.UncaughtExceptionHandler;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.CountDownLatch;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ThreadFactory;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line">* Disruptor例子</div><div class="line">* jerry li</div><div class="line">*/</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DisruptorDSLExample</span> </span>&#123;</div><div class="line"></div><div class="line">  <span class="comment">/**</span></div><div class="line">  * 用户自定义事件</div><div class="line">  */</div><div class="line">  <span class="class"><span class="keyword">class</span> <span class="title">ExampleEvent</span></span>&#123;</div><div class="line">    Object data ;</div><div class="line">    Object ext;</div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">toString</span><span class="params">()</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> <span class="string">"DisruptorDSLExample[data:"</span>+<span class="keyword">this</span>.data+<span class="string">",ext:"</span>+ext+<span class="string">"]"</span>;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">/**</span></div><div class="line">  * 用户事件工厂，实现EventFactory接口，用于初始化事件对象</div><div class="line">  */</div><div class="line">  <span class="class"><span class="keyword">class</span> <span class="title">ExampleEventFactory</span> <span class="keyword">implements</span> <span class="title">EventFactory</span>&lt;<span class="title">ExampleEvent</span>&gt;</span>&#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> ExampleEvent <span class="title">newInstance</span><span class="params">()</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> <span class="keyword">new</span> ExampleEvent();</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">/**</span></div><div class="line">  * 生产者在发布事件时，使用翻译器将原始对象设置到RingBuffer的对象中</div><div class="line">  */</div><div class="line">  <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">IntToExampleEventTranslator</span> <span class="keyword">implements</span> <span class="title">EventTranslatorOneArg</span>&lt;<span class="title">ExampleEvent</span>, <span class="title">Integer</span>&gt;</span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">static</span> <span class="keyword">final</span> IntToExampleEventTranslator INSTANCE = <span class="keyword">new</span> IntToExampleEventTranslator();</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">translateTo</span><span class="params">(ExampleEvent event, <span class="keyword">long</span> sequence, Integer arg0)</span> </span>&#123;</div><div class="line">      event.data = arg0 ;</div><div class="line">      System.err.println(<span class="string">"put data "</span>+sequence+<span class="string">", "</span>+event+<span class="string">", "</span>+arg0);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 用于事件处理(EventProcessor)的线程工厂</span></div><div class="line">  ThreadFactory threadFactory =</div><div class="line">      <span class="keyword">new</span> ThreadFactoryBuilder()</div><div class="line">          .setNameFormat(<span class="string">"disruptor-executor-%d"</span>)</div><div class="line">          .setUncaughtExceptionHandler(<span class="keyword">new</span> UncaughtExceptionHandler() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">uncaughtException</span><span class="params">(Thread t, Throwable e)</span> </span>&#123;</div><div class="line">              System.out.println(<span class="string">"Thread "</span> + t + <span class="string">"throw "</span> + e);</div><div class="line">              e.printStackTrace();</div><div class="line">            &#125;</div><div class="line">          &#125;)</div><div class="line"></div><div class="line">          .build();</div><div class="line">  Disruptor disruptor = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">  <span class="comment">// 初始化Disruptor</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">createDisruptor</span><span class="params">(<span class="keyword">final</span> CountDownLatch latch)</span></span>&#123;</div><div class="line"></div><div class="line">    disruptor = <span class="keyword">new</span> Disruptor&lt;ExampleEvent&gt;(</div><div class="line">        <span class="keyword">new</span> ExampleEventFactory(),  <span class="comment">// 用于创建环形缓冲中对象的工厂</span></div><div class="line">        <span class="number">8</span>,  <span class="comment">// 环形缓冲的大小</span></div><div class="line">        threadFactory,  <span class="comment">// 用于事件处理的线程工厂</span></div><div class="line">        ProducerType.MULTI, <span class="comment">// 生产者类型，单vs多生产者</span></div><div class="line">        <span class="keyword">new</span> BlockingWaitStrategy()); <span class="comment">// 等待环形缓冲游标的等待策略，这里使用阻塞模式，也是Disruptor中唯一有锁的地方</span></div><div class="line"></div><div class="line">    <span class="comment">// 消费者模拟-日志处理</span></div><div class="line">    EventHandler journalHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        Thread.sleep(<span class="number">8</span>);</div><div class="line">        System.out.println(Thread.currentThread().getId() + <span class="string">" process journal "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">      &#125;</div><div class="line">    &#125;;</div><div class="line"></div><div class="line">    <span class="comment">// 消费者模拟-复制处理</span></div><div class="line">    EventHandler replicateHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        Thread.sleep(<span class="number">10</span>);</div><div class="line">        System.out.println(Thread.currentThread().getId() + <span class="string">" process replication "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">      &#125;</div><div class="line">    &#125;;</div><div class="line"></div><div class="line">    <span class="comment">// 消费者模拟-解码处理</span></div><div class="line">    EventHandler unmarshallHandler = <span class="keyword">new</span> EventHandler() &#123; <span class="comment">// 最慢</span></div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        Thread.sleep(<span class="number">1</span>*<span class="number">1000</span>);</div><div class="line">        <span class="keyword">if</span>(event <span class="keyword">instanceof</span> ExampleEvent)&#123;</div><div class="line">          ((ExampleEvent)event).ext = <span class="string">"unmarshalled "</span>;</div><div class="line">        &#125;</div><div class="line">        System.out.println(Thread.currentThread().getId() + <span class="string">" process unmarshall "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line"></div><div class="line">      &#125;</div><div class="line">    &#125;;</div><div class="line"></div><div class="line">    <span class="comment">// 消费者处理-结果上报，只有执行完以上三种后才能执行此消费者</span></div><div class="line">    EventHandler resultHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        System.out.println(Thread.currentThread().getId() + <span class="string">" =========== result "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">        latch.countDown();</div><div class="line">      &#125;</div><div class="line">    &#125;;</div><div class="line">    <span class="comment">// 定义消费链，先并行处理日志、解码和复制，再处理结果上报</span></div><div class="line">    disruptor</div><div class="line">        .handleEventsWith(</div><div class="line">          <span class="keyword">new</span> EventHandler[]&#123;</div><div class="line">              journalHandler,</div><div class="line">              unmarshallHandler,</div><div class="line">              replicateHandler</div><div class="line">          &#125;</div><div class="line">        )</div><div class="line">        .then(resultHandler);</div><div class="line">    <span class="comment">// 启动Disruptor</span></div><div class="line">    disruptor.start();</div><div class="line"></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span></span>&#123;</div><div class="line">    disruptor.shutdown();</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">public</span> Disruptor <span class="title">getDisruptor</span><span class="params">()</span></span>&#123;</div><div class="line">    <span class="keyword">return</span> disruptor;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">    <span class="keyword">final</span> <span class="keyword">int</span> events = <span class="number">20</span>; <span class="comment">// 必须为偶数</span></div><div class="line">    DisruptorDSLExample disruptorDSLExample = <span class="keyword">new</span> DisruptorDSLExample();</div><div class="line">    <span class="keyword">final</span> CountDownLatch latch = <span class="keyword">new</span> CountDownLatch(events);</div><div class="line"></div><div class="line">    disruptorDSLExample.createDisruptor(latch);</div><div class="line"></div><div class="line">    <span class="keyword">final</span> Disruptor disruptor = disruptorDSLExample.getDisruptor();</div><div class="line">    <span class="comment">// 生产线程0</span></div><div class="line">    Thread produceThread0 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> x = <span class="number">0</span>;</div><div class="line">        <span class="keyword">while</span>(x++ &lt; events / <span class="number">2</span>)&#123;</div><div class="line">          disruptor.publishEvent(IntToExampleEventTranslator.INSTANCE, x);</div><div class="line">        &#125;</div><div class="line">      &#125;</div><div class="line">    &#125;);</div><div class="line">    <span class="comment">// 生产线程1</span></div><div class="line">    Thread produceThread1 = <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">      <span class="meta">@Override</span></div><div class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> x = <span class="number">0</span>;</div><div class="line">        <span class="keyword">while</span>(x++ &lt; events / <span class="number">2</span>)&#123;</div><div class="line">          disruptor.publishEvent(IntToExampleEventTranslator.INSTANCE, x);</div><div class="line"></div><div class="line">        &#125;</div><div class="line">      &#125;</div><div class="line">    &#125;);</div><div class="line"></div><div class="line">    produceThread0.start();</div><div class="line">    produceThread1.start();</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      latch.await();</div><div class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">      e.printStackTrace();</div><div class="line">    &#125;</div><div class="line">    disruptorDSLExample.shutdown();</div><div class="line">  &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="构建Disruptor类"><a href="#构建Disruptor类" class="headerlink" title="构建Disruptor类"></a>构建Disruptor类</h2><p>可以发现整个例子都是围绕Disruptor这个类实现的，相关内容可参见官方文档Disruptor Wizard。<br>其实不使用Disruptor类也是完全可以的，直接操作RingBuffer更加灵活也更麻烦。Disruptor类提供了操作RingBuffer和设置消费依赖的便捷API，如构建Ringbuffer、设置消费链、启动关闭Disruptor、暂停消费者、发布事件等。<br>接下来，我们把示例拆开看。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">disruptor = <span class="keyword">new</span> Disruptor&lt;ExampleEvent&gt;(</div><div class="line">    <span class="keyword">new</span> ExampleEventFactory(),  <span class="comment">// 用于创建环形缓冲中对象的工厂</span></div><div class="line">    <span class="number">8</span>,  <span class="comment">// 环形缓冲的大小</span></div><div class="line">    threadFactory,  <span class="comment">// 用于事件处理的线程工厂</span></div><div class="line">    ProducerType.MULTI, <span class="comment">// 生产者类型，单vs多生产者</span></div><div class="line">    <span class="keyword">new</span> BlockingWaitStrategy()); <span class="comment">// 等待环形缓冲游标的等待策略，这里使用阻塞模式，也是Disruptor中唯一有锁的地方</span></div></pre></td></tr></table></figure></p>
+<p>这里调用构造方法创建了一个Disruptor对象，实际上创建了一个RingBuffer对象和一个Executor，并将引入传入私有化的构造方法创建了Disruptor对象。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Disruptor.java</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">Disruptor</span><span class="params">(</span></span></div><div class="line">        <span class="keyword">final</span> EventFactory&lt;T&gt; eventFactory, // 用于创建环形缓冲中对象的工厂</div><div class="line">        <span class="keyword">final</span> <span class="keyword">int</span> ringBufferSize, // 环形缓冲的大小</div><div class="line">        <span class="keyword">final</span> ThreadFactory threadFactory, // 用于事件处理的线程工厂</div><div class="line">        <span class="keyword">final</span> ProducerType producerType, // 生产者类型，单vs多生产者</div><div class="line">        <span class="keyword">final</span> WaitStrategy waitStrategy) <span class="comment">// 等待环形缓冲游标的等待策略</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">this</span>(</div><div class="line">        RingBuffer.create(producerType, eventFactory, ringBufferSize, waitStrategy),</div><div class="line">        <span class="keyword">new</span> BasicExecutor(threadFactory));</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="title">Disruptor</span><span class="params">(<span class="keyword">final</span> RingBuffer&lt;T&gt; ringBuffer, <span class="keyword">final</span> Executor executor)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">this</span>.ringBuffer = ringBuffer;</div><div class="line">    <span class="keyword">this</span>.executor = executor;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// RingBuffer.java</span></div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;E&gt; <span class="function">RingBuffer&lt;E&gt; <span class="title">create</span><span class="params">(</span></span></div><div class="line">        ProducerType producerType,</div><div class="line">        EventFactory&lt;E&gt; factory,</div><div class="line">        <span class="keyword">int</span> bufferSize,</div><div class="line">        WaitStrategy waitStrategy)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">switch</span> (producerType) <span class="comment">// 构建RingBuffer时通过producerType来区分单生产者或多生产者</span></div><div class="line">        &#123;</div><div class="line">            <span class="keyword">case</span> SINGLE:</div><div class="line">                <span class="keyword">return</span> createSingleProducer(factory, bufferSize, waitStrategy);</div><div class="line">            <span class="keyword">case</span> MULTI:</div><div class="line">                <span class="keyword">return</span> createMultiProducer(factory, bufferSize, waitStrategy);</div><div class="line">            <span class="keyword">default</span>:</div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(producerType.toString());</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line"><span class="comment">// 单生产者模式创建RingBuffer</span></div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;E&gt; <span class="function">RingBuffer&lt;E&gt; <span class="title">createSingleProducer</span><span class="params">(</span></span></div><div class="line">    EventFactory&lt;E&gt; factory,</div><div class="line">    <span class="keyword">int</span> bufferSize,</div><div class="line">    WaitStrategy waitStrategy)</div><div class="line">&#123;</div><div class="line">    SingleProducerSequencer sequencer = <span class="keyword">new</span> SingleProducerSequencer(bufferSize, waitStrategy);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> RingBuffer&lt;E&gt;(factory, sequencer);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 多生产者模式创建RingBuffer</span></div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;E&gt; <span class="function">RingBuffer&lt;E&gt; <span class="title">createMultiProducer</span><span class="params">(</span></span></div><div class="line">        EventFactory&lt;E&gt; factory,</div><div class="line">        <span class="keyword">int</span> bufferSize,</div><div class="line">        WaitStrategy waitStrategy)</div><div class="line">    &#123;</div><div class="line">        MultiProducerSequencer sequencer = <span class="keyword">new</span> MultiProducerSequencer(bufferSize, waitStrategy);</div><div class="line"></div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RingBuffer&lt;E&gt;(factory, sequencer);</div><div class="line">    &#125;</div><div class="line"></div><div class="line"><span class="comment">// RingBuffer构造器</span></div><div class="line">RingBuffer(</div><div class="line">    EventFactory&lt;E&gt; eventFactory,</div><div class="line">    Sequencer sequencer)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">super</span>(eventFactory, sequencer);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里注意下，在构造RingBuffer时，需要传入用于创建事件对象的工厂eventFactory和记录生产者序号的sequencer。根据生产者是否是多线程生产，Sequencer又分为单、多生产者模式，后续还会讲到。<br>构建Disruptor实例后，需要设置Disruptor的消费者。</p>
+<h2 id="设置消费者"><a href="#设置消费者" class="headerlink" title="设置消费者"></a>设置消费者</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 消费者模拟-日志处理</span></div><div class="line">EventHandler journalHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    Thread.sleep(<span class="number">8</span>);</div><div class="line">    System.out.println(Thread.currentThread().getId() + <span class="string">" process journal "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="comment">// 消费者模拟-复制处理</span></div><div class="line">EventHandler replicateHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    Thread.sleep(<span class="number">10</span>);</div><div class="line">    System.out.println(Thread.currentThread().getId() + <span class="string">" process replication "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="comment">// 消费者模拟-解码处理</span></div><div class="line">EventHandler unmarshallHandler = <span class="keyword">new</span> EventHandler() &#123; <span class="comment">// 最慢</span></div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    Thread.sleep(<span class="number">1</span>*<span class="number">1000</span>);</div><div class="line">    <span class="keyword">if</span>(event <span class="keyword">instanceof</span> ExampleEvent)&#123;</div><div class="line">      ((ExampleEvent)event).ext = <span class="string">"unmarshalled "</span>;</div><div class="line">    &#125;</div><div class="line">    System.out.println(Thread.currentThread().getId() + <span class="string">" process unmarshall "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line"></div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="comment">// 消费者处理-结果上报，只有执行完以上三种后才能执行此消费者</span></div><div class="line">EventHandler resultHandler = <span class="keyword">new</span> EventHandler() &#123;</div><div class="line">  <span class="meta">@Override</span></div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onEvent</span><span class="params">(Object event, <span class="keyword">long</span> sequence, <span class="keyword">boolean</span> endOfBatch)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    System.out.println(Thread.currentThread().getId() + <span class="string">" =========== result "</span> + event + <span class="string">", seq: "</span> + sequence);</div><div class="line">    latch.countDown();</div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure>
+<p>这里使用了两组消费者，第一组包含三个消费者，第二组包含一个消费者。当事件可消费后，只有当第一组全部消费者都处理完毕后，事件才能被第二组消费者处理。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 定义消费链，先并行处理日志、解码和复制，再处理结果上报</span></div><div class="line">disruptor</div><div class="line">    .handleEventsWith(</div><div class="line">      <span class="keyword">new</span> EventHandler[]&#123;</div><div class="line">          journalHandler,</div><div class="line">          unmarshallHandler,</div><div class="line">          replicateHandler</div><div class="line">      &#125;</div><div class="line">    )</div><div class="line">    .then(resultHandler);</div></pre></td></tr></table></figure></p>
+<h2 id="启动Disruptor"><a href="#启动Disruptor" class="headerlink" title="启动Disruptor"></a>启动Disruptor</h2><p>消费者设置成功后，即可启动Disruptor。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 启动Disruptor</span></div><div class="line">disruptor.start();</div></pre></td></tr></table></figure></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// Disruptor.java</span></div><div class="line"><span class="function"><span class="keyword">public</span> RingBuffer&lt;T&gt; <span class="title">start</span><span class="params">()</span></span></div><div class="line">&#123;</div><div class="line">    checkOnlyStartedOnce();</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">final</span> ConsumerInfo consumerInfo : consumerRepository)</div><div class="line">    &#123;</div><div class="line">        consumerInfo.start(executor);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> ringBuffer;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>ConsumerRepository这个类实现了Iterable接口，iterator()方法返回ConsumerInfo集合的迭代器。ConsumerInfo是一个封装类，对应EventBatchProcessor和WorkProcessor有两种实现。EventProcessorInfo对应BatchEventProcessor，保存了与一个事件处理过程相关的EventProcessor、EventHandler、SequenceBarrier的引用。WorkerPoolInfo对应WorkProcessor，保存了WorkerPool、SequenceBarrier的引用以及代表消费者组是否为消费者链尾的标志endOfChain。<br>如果看不懂，不要着急哈，后续讲到消费者的时候就会明白了。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// ConsumerRepository.java</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">ConsumerRepository</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">Iterable</span>&lt;<span class="title">ConsumerInfo</span>&gt;</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Map&lt;EventHandler&lt;?&gt;, EventProcessorInfo&lt;T&gt;&gt; eventProcessorInfoByEventHandler =</div><div class="line">        <span class="keyword">new</span> IdentityHashMap&lt;EventHandler&lt;?&gt;, EventProcessorInfo&lt;T&gt;&gt;(); <span class="comment">// hander引用为key</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Map&lt;Sequence, ConsumerInfo&gt; eventProcessorInfoBySequence =</div><div class="line">        <span class="keyword">new</span> IdentityHashMap&lt;Sequence, ConsumerInfo&gt;(); <span class="comment">// 处理器的序列引用为key</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Collection&lt;ConsumerInfo&gt; consumerInfos = <span class="keyword">new</span> ArrayList&lt;ConsumerInfo&gt;();</div><div class="line"></div><div class="line">    <span class="comment">// 省略代码若干... </span></div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> Iterator&lt;ConsumerInfo&gt; <span class="title">iterator</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">return</span> consumerInfos.iterator();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>调用ConsumerInfo.start()方法，其实就是启动了消费者线程：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// EventProcessorInfo.java</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">EventProcessorInfo</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">ConsumerInfo</span></span></div><div class="line">&#123;</div><div class="line"></div><div class="line">    <span class="comment">// 省略代码若干...</span></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">(<span class="keyword">final</span> Executor executor)</span></span></div><div class="line">    &#123;</div><div class="line">        executor.execute(eventprocessor);</div><div class="line"></div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// WorkerPoolInfo.java</span></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">WorkerPoolInfo</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">ConsumerInfo</span></span></div><div class="line">&#123;</div><div class="line">     <span class="comment">// 省略代码若干...</span></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">(<span class="keyword">final</span> Executor executor)</span></span></div><div class="line"></div><div class="line">    &#123;</div><div class="line">        workerPool.start(executor);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// WorkerPool.java</span></div><div class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">WorkerPool</span>&lt;<span class="title">T</span>&gt;</span></div><div class="line">&#123;</div><div class="line">     <span class="comment">// 省略代码若干...</span></div><div class="line">     <span class="function"><span class="keyword">public</span> RingBuffer&lt;T&gt; <span class="title">start</span><span class="params">(<span class="keyword">final</span> Executor executor)</span></span></div><div class="line">     &#123;</div><div class="line">    <span class="keyword">if</span> (!started.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>))</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"WorkerPool has already been started and cannot be restarted until halted."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">final</span> <span class="keyword">long</span> cursor = ringBuffer.getCursor();</div><div class="line">    workSequence.set(cursor);</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (WorkProcessor&lt;?&gt; processor : workProcessors)</div><div class="line">    &#123;</div><div class="line">        processor.getSequence().set(cursor);</div><div class="line">        executor.execute(processor);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> ringBuffer;    </div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>至此，Disruptor的初始化和启动就完成了。主要是完成了RingBuffer数据结构的初始化、设置消费者以及启动。<br>后续将继续分享消费者代码。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/disruptor/" rel="tag"># disruptor</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/09/05/解读Disruptor系列-解读源码（0）之源码导读/" rel="next" title="解读Disruptor系列--解读源码（0）之源码导读">
+                <i class="fa fa-chevron-left"></i> 解读Disruptor系列--解读源码（0）之源码导读
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/09/07/解读Disruptor系列-解读源码（2）之生产者/" rel="prev" title="解读Disruptor系列--解读源码（2）之生产者">
+                解读Disruptor系列--解读源码（2）之生产者 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.png"
+               alt="Jerry Li" />
+          <p class="site-author-name" itemprop="name">Jerry Li</p>
+           
+              <p class="site-description motion-element" itemprop="description">Jerry's coder life</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">19</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/eXcellme" target="_blank" title="Github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.jianshu.com/u/4c940e688e05" target="_blank" title="JianShu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  JianShu
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://my.oschina.net/bfleeee/blog" target="_blank" title="Oschina">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  Oschina
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#完整版Demo"><span class="nav-number">1.</span> <span class="nav-text">完整版Demo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#构建Disruptor类"><span class="nav-number">2.</span> <span class="nav-text">构建Disruptor类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设置消费者"><span class="nav-number">3.</span> <span class="nav-text">设置消费者</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动Disruptor"><span class="nav-number">4.</span> <span class="nav-text">启动Disruptor</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jerry Li</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://coderjerry.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://coderjerry.com/2017/09/05/解读Disruptor系列-解读源码（1）之初始化/';
+          this.page.identifier = '2017/09/05/解读Disruptor系列-解读源码（1）之初始化/';
+          this.page.title = '解读Disruptor系列--解读源码（1）之初始化';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://coderjerry.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
